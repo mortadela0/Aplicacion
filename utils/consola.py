@@ -21,7 +21,7 @@ def banner():
     print(f"""
 {Fore.CYAN}╔══════════════════════════════════════════════════════════╗
 ║   {Fore.WHITE}SELECTOR DE VARIABLES  {Fore.YELLOW}v2.1{Fore.CYAN}                          ║
-║   {Fore.WHITE}Correlation | Chi2 | RF | Gower | {Fore.YELLOW}Weka API{Fore.CYAN}           ║
+║   {Fore.WHITE}Correlation | Chi2 | RF | Gower | IBk | {Fore.YELLOW}Weka API{Fore.CYAN}           ║
 ╚══════════════════════════════════════════════════════════╝{Style.RESET_ALL}
 """)
 
@@ -43,9 +43,10 @@ def menu_principal(weka_ok: bool = False) -> str:
     print(f"  {Fore.WHITE}[4]{Fore.YELLOW}  Random Forest                 (Gini importance)")
     print(f"  {Fore.WHITE}[5]{Fore.YELLOW}  Distancia de Gower            (datos mixtos)")
     print(f"  {Fore.WHITE}[6]{Fore.YELLOW}  Weka evaluators               (InfoGain/GainRatio/ReliefF/CFS)  {estado_weka}")
+    print(f"  {Fore.WHITE}[7]{Fore.YELLOW}  IBk (k-Nearest Neighbors)     (clasificación por vecinos)")
     print(f"  {Fore.CYAN}  ── Comparacion y exportacion ─────────────────────────────")
-    print(f"  {Fore.WHITE}[7]{Fore.YELLOW}  Comparar TODOS los metodos    (incluye Weka si activo)")
-    print(f"  {Fore.WHITE}[8]{Fore.YELLOW}  Exportar resultados a CSV")
+    print(f"  {Fore.WHITE}[8]{Fore.YELLOW}  Comparar TODOS los metodos    (incluye Weka si activo)")
+    print(f"  {Fore.WHITE}[9]{Fore.YELLOW}  Exportar resultados a CSV")
     print(f"  {Fore.WHITE}[0]{Fore.RED}  Salir")
     print(f"{Fore.CYAN}{'─'*70}")
     return input(f"{Fore.WHITE}  Selecciona opcion: {Fore.GREEN}").strip()

@@ -74,11 +74,13 @@ from utils.preprocesamiento import normalizar_serie
 from utils.reporte_weka     import (imprimir_reporte_comparativo,
                                     imprimir_validacion_vs_weka)
 from validacion             import validar_dataset, validar_target
+
 import metodos.correlacion   as m_correlacion
 import metodos.chi2          as m_chi2
 import metodos.random_forest as m_rf
 import metodos.gower         as m_gower
 import metodos.weka_attsel   as m_weka
+import metodos.IBk           as m_ibk
 
 
 # ─── CARGA DE CSV ─────────────────────────────────────────────────────────────
@@ -264,7 +266,7 @@ def main():
             else:
                 m_rf.ejecutar(df, target_col)
 
-        # ── [5] GOWER ────────────────────────────────────────────────────────
+        # ── [5] GOWER ────1────────────────────────────────────────────────────
         elif opcion == "5":
             if df is None or target_col is None:
                 print(f"\n  {Fore.RED}[ERROR] Primero carga un CSV (opcion 1).")
@@ -283,9 +285,13 @@ def main():
                     print(f"  {Fore.WHITE}    1. Instala Java JDK 8+  →  https://adoptium.net")
                     print(f"  {Fore.WHITE}    2. pip install python-weka-wrapper3 jpype1")
                     print(f"  {Fore.WHITE}    3. Configura JAVA_HOME y reinicia")
-
-        # ── [7] COMPARAR TODOS ───────────────────────────────────────────────
+        
+        # ── [7] IBk ─────────────────────────────────────────────────────────
         elif opcion == "7":
+            m_ibk.ejecutar(df, target_col)
+
+        # ── [8] COMPARAR TODOS ───────────────────────────────────────────────
+        elif opcion == "8":
             if df is None or target_col is None:
                 print(f"\n  {Fore.RED}[ERROR] Primero carga un CSV (opcion 1).")
             else:
