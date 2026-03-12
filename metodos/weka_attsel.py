@@ -32,6 +32,9 @@ _RUTAS_JVM = [
 
 
 def weka_disponible() -> bool:
+    global _WEKA_OK, _JVM_ACTIVA
+    if not _WEKA_OK:
+        iniciar_jvm()
     return _WEKA_OK
 
 
@@ -347,3 +350,10 @@ def consolidar_scores_weka(resultados: dict, todos_idx) -> pd.Series:
     if not capas:
         return pd.Series(0.0, index=todos_idx)
     return pd.concat(capas, axis=1).mean(axis=1)
+
+
+# ─── AUTO-ARRANQUE AL IMPORTAR ───────────────────────
+try:
+    iniciar_jvm()
+except Exception:
+    pass

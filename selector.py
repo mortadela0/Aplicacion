@@ -1,27 +1,8 @@
 """
 ╔══════════════════════════════════════════════════════════╗
-║   SELECTOR DE VARIABLES v2.1                             ║
-║   Correlacion | Chi2 | RandomForest | Gower | Weka API  ║
+║   SELECTOR DE VARIABLES v2.2                             ║
+║   Correlation | Chi2 | RF | Gower | Weka | Prediccion   ║
 ╚══════════════════════════════════════════════════════════╝
-
-Uso:
-    python selector.py
-
-Estructura:
-    selector.py              <- Punto de entrada (este archivo)
-    validacion.py            <- Validacion de dataset y target
-    metodos/
-        correlacion.py       <- Metodo 1: Pearson |r|
-        chi2.py              <- Metodo 2: F-score SelectKBest
-        random_forest.py     <- Metodo 3: Gini importance
-        gower.py             <- Metodo 4: Distancia de Gower
-        weka_attsel.py       <- Metodo 5: Weka native evaluators
-    utils/
-        consola.py           <- Banner, menu, helpers UI
-        preprocesamiento.py  <- Encoding, imputacion, escalado
-        reporte_weka.py      <- Formateador salida estilo Weka
-    datos/                   <- Coloca aqui tus CSV
-    resultados/              <- Salida de exportaciones
 """
 
 import os
@@ -33,29 +14,21 @@ from colorama import Fore, Style, init
 init(autoreset=True)
 
 
-# ─── VERIFICAR DEPENDENCIAS BASE ─────────────────────────────────────────────
-def _safe_import(mod: str) -> bool:
+def _safe_import(mod):
     try:
-        __import__(mod)
-        return True
+        __import__(mod); return True
     except ImportError:
         return False
 
 
 def verificar_dependencias():
-    base = {
-        "sklearn":    "scikit-learn",
-        "pandas":     "pandas",
-        "numpy":      "numpy",
-        "colorama":   "colorama",
-        "matplotlib": "matplotlib",
-    }
+    base = {"sklearn": "scikit-learn", "pandas": "pandas",
+            "numpy": "numpy", "colorama": "colorama", "matplotlib": "matplotlib"}
     faltan = [pip for mod, pip in base.items() if not _safe_import(mod)]
     if faltan:
-        print(f"\n{Fore.RED}[ERROR] Faltan dependencias obligatorias:")
+        print(f"\n{Fore.RED}[ERROR] Faltan dependencias:")
         for p in faltan:
             print(f"  {Fore.YELLOW}pip install {p}")
-        print(f"\n{Fore.YELLOW}  O ejecuta: pip install -r requirements.txt")
         sys.exit(1)
 
 
@@ -64,7 +37,6 @@ def crear_estructura():
         os.makedirs(d, exist_ok=True)
 
 
-# ─── ARRANQUE ─────────────────────────────────────────────────────────────────
 verificar_dependencias()
 crear_estructura()
 
@@ -78,19 +50,25 @@ import metodos.correlacion   as m_correlacion
 import metodos.chi2          as m_chi2
 import metodos.random_forest as m_rf
 import metodos.gower         as m_gower
-import metodos.weka_attsel   as m_weka
+import metodos.prediccion    as m_pred
+
+try:
+    import metodos.weka_attsel as m_weka
+    _WEKA_OK = True
+except (ImportError, ModuleNotFoundError):
+    m_weka  = None
+    _WEKA_OK = False
+
+
+def _weka_disponible():
+    return _WEKA_OK and m_weka is not None and m_weka.weka_disponible()
 
 
 # ─── CARGA DE CSV ─────────────────────────────────────────────────────────────
 def cargar_csv():
-    """
-    Carga un CSV desde disco o usa el dataset demo (Iris).
-    Retorna (DataFrame, nombre_archivo) o (None, None) si falla.
-    """
     print(f"\n  {Fore.CYAN}Carpeta recomendada: {Fore.WHITE}datos/")
     ruta = input(f"\n  {Fore.WHITE}Ruta del CSV (Enter = demo Iris): {Fore.GREEN}").strip()
 
-    # ── Dataset demo ──────────────────────────────────
     if not ruta:
         print(f"  {Fore.YELLOW}[INFO] Cargando dataset demo (Iris)...")
         try:
@@ -98,27 +76,18 @@ def cargar_csv():
             iris = load_iris(as_frame=True)
             df   = iris.frame
             df.columns = [c.replace(" (cm)", "").replace(" ", "_") for c in df.columns]
-            # Convertir target numérico a nombre de especie (string) para demo
             nombres = {0: "setosa", 1: "versicolor", 2: "virginica"}
             df["target"] = df["target"].map(nombres)
             print(f"  {Fore.GREEN}[OK] {df.shape[0]} instancias, {df.shape[1]} atributos.")
-            print(f"  {Fore.CYAN}  target: 'setosa' / 'versicolor' / 'virginica'  (STRING)")
             return df, "iris.arff"
         except Exception as e:
-            print(f"  {Fore.RED}[ERROR] No se pudo cargar el demo: {e}")
-            return None, None
+            print(f"  {Fore.RED}[ERROR] {e}"); return None, None
 
-    # ── Archivo real ──────────────────────────────────
     if not os.path.exists(ruta):
-        print(f"  {Fore.RED}[ERROR] Archivo no encontrado: '{ruta}'")
-        return None, None
-
-    if not ruta.lower().endswith(".csv"):
-        print(f"  {Fore.YELLOW}[WARN] Sin extension .csv — intentando de todas formas...")
+        print(f"  {Fore.RED}[ERROR] No encontrado: '{ruta}'"); return None, None
 
     sep_i = input(f"  {Fore.WHITE}Separador (Enter=coma / ';' / 'tab'): {Fore.GREEN}").strip()
     sep   = "\t" if sep_i in ["\\t", "tab"] else (sep_i or ",")
-
     try:
         df = pd.read_csv(ruta, sep=sep)
         if df.shape[1] == 1:
@@ -126,35 +95,23 @@ def cargar_csv():
         print(f"  {Fore.GREEN}[OK] {df.shape[0]} instancias, {df.shape[1]} atributos.")
         return df, os.path.basename(ruta)
     except Exception as e:
-        print(f"  {Fore.RED}[ERROR] {e}")
-        return None, None
+        print(f"  {Fore.RED}[ERROR] {e}"); return None, None
 
 
-# ─── COMPARAR TODOS LOS MÉTODOS ───────────────────────────────────────────────
+# ─── COMPARAR TODOS ───────────────────────────────────────────────────────────
 def comparar_metodos(df, target_col, nombre_archivo, resultados_weka):
-    """
-    Ejecuta los 4 métodos propios + integra Weka si disponible.
-    Genera SCORE_FINAL normalizado y reporte comparativo.
-    """
     separador("RUNNING ALL EVALUATORS")
 
     print(f"\n  {Fore.YELLOW}[1/4] CorrelationAttributeEval...")
     corr = m_correlacion.ejecutar(df, target_col)
-
     print(f"\n  {Fore.YELLOW}[2/4] Chi2 / F-score...")
     chi  = m_chi2.ejecutar(df, target_col)
-
     print(f"\n  {Fore.YELLOW}[3/4] RandomForest Gini...")
     rf   = m_rf.ejecutar(df, target_col)
-
     print(f"\n  {Fore.YELLOW}[4/4] Gower Distance...")
     gwr  = m_gower.ejecutar(df, target_col)
 
-    # ── Unificar índices ──────────────────────────────
-    todos_idx = (corr.index
-                     .union(chi.index)
-                     .union(rf.index)
-                     .union(gwr.index))
+    todos_idx = corr.index.union(chi.index).union(rf.index).union(gwr.index)
 
     resumen = pd.DataFrame(index=todos_idx)
     resumen["Correlacion"]  = normalizar_serie(corr.reindex(todos_idx).fillna(0))
@@ -162,7 +119,6 @@ def comparar_metodos(df, target_col, nombre_archivo, resultados_weka):
     resumen["RandomForest"] = normalizar_serie(rf.reindex(todos_idx).fillna(0))
     resumen["Gower"]        = normalizar_serie(gwr.reindex(todos_idx).fillna(0))
 
-    # ── Incluir Weka si disponible ────────────────────
     if resultados_weka and resultados_weka.get("disponible"):
         weka_score = m_weka.consolidar_scores_weka(resultados_weka, todos_idx)
         resumen["Weka_Avg"] = weka_score
@@ -170,20 +126,14 @@ def comparar_metodos(df, target_col, nombre_archivo, resultados_weka):
         print(f"\n  {Fore.GREEN}[INFO] Weka incluido en SCORE_FINAL (5 metodos).")
     else:
         cols_score = ["Correlacion", "Chi2_F", "RandomForest", "Gower"]
-        print(f"\n  {Fore.YELLOW}[INFO] Weka no disponible — SCORE_FINAL con 4 metodos.")
+        print(f"\n  {Fore.YELLOW}[INFO] SCORE_FINAL con 4 metodos propios.")
 
     resumen["SCORE_FINAL"] = resumen[cols_score].mean(axis=1)
     resumen = resumen.sort_values("SCORE_FINAL", ascending=False)
 
-    # ── Reporte comparativo ───────────────────────────
-    dataset_info = {
-        "nombre":   nombre_archivo,
-        "filas":    len(df),
-        "columnas": len(df.columns),
-    }
+    dataset_info = {"nombre": nombre_archivo, "filas": len(df), "columnas": len(df.columns)}
     imprimir_reporte_comparativo(resumen, dataset_info, target_col)
 
-    # ── Validacion cruzada vs Weka ────────────────────
     if resultados_weka and resultados_weka.get("disponible"):
         separador("CROSS-VALIDATION: OWN METHODS vs WEKA")
         imprimir_validacion_vs_weka(resumen, resultados_weka, target_col)
@@ -192,130 +142,164 @@ def comparar_metodos(df, target_col, nombre_archivo, resultados_weka):
 
 
 # ─── EXPORTAR ─────────────────────────────────────────────────────────────────
-def exportar_resultados(resumen: pd.DataFrame):
+def exportar_resultados(resumen):
     separador("EXPORT RESULTS")
-    nombre   = input(f"  {Fore.WHITE}Nombre del archivo (sin .csv): {Fore.GREEN}").strip()
-    nombre   = nombre if nombre else "resultados_seleccion"
+    nombre   = input(f"  {Fore.WHITE}Nombre (sin .csv): {Fore.GREEN}").strip() or "resultados_seleccion"
     ruta_out = os.path.join("resultados", f"{nombre}.csv")
     resumen.to_csv(ruta_out)
-    print(f"\n  {Fore.GREEN}[OK] Guardado en: {ruta_out}")
-    cols = " | ".join(resumen.columns.tolist())
-    print(f"  {Fore.CYAN}Columnas: {cols}")
+    print(f"\n  {Fore.GREEN}[OK] Guardado: {ruta_out}")
 
 
-# ─── MAIN LOOP ────────────────────────────────────────────────────────────────
+# ─── MENÚ PREDICCIÓN ─────────────────────────────────────────────────────────
+def menu_prediccion(df, target_col, ultimo_resumen, modelos_entrenados):
+    """Sub-menú de predicción con opciones a / b."""
+    separador("PREDICCIÓN")
+
+    # Obtener top features del resumen si existe
+    top_features = None
+    if ultimo_resumen is not None:
+        n = ultimo_resumen["SCORE_FINAL"].gt(0.5).sum()
+        n = max(n, 3)
+        top_features = ultimo_resumen["SCORE_FINAL"].nlargest(int(n)).index.tolist()
+        print(f"  {Fore.CYAN}  Top features (SCORE_FINAL > 0.5): "
+              f"{Fore.WHITE}{', '.join(top_features)}")
+    else:
+        print(f"  {Fore.YELLOW}  [INFO] Sin resumen previo — se usan todas las features.")
+        print(f"  {Fore.YELLOW}         Ejecuta opcion [7] primero para usar top features.")
+
+    print(f"\n  {Fore.WHITE}[a]  Evaluar modelos      (train/test split + cross-validation)")
+    print(f"  {Fore.WHITE}[b]  Predecir CSV nuevo   (usa el mejor modelo entrenado)")
+    print(f"  {Fore.WHITE}[0]  Volver al menu principal")
+    sub = input(f"\n  {Fore.GREEN}> ").strip().lower()
+
+    if sub == "a":
+        # Pedir K y test_size
+        k_str = input(f"  {Fore.WHITE}  K vecinos para KNN (Enter=5): {Fore.GREEN}").strip()
+        k = int(k_str) if k_str.isdigit() else 5
+
+        ts_str = input(f"  {Fore.WHITE}  % test (Enter=20): {Fore.GREEN}").strip()
+        try:
+            test_size = float(ts_str) / 100 if ts_str else 0.2
+            test_size = max(0.1, min(0.4, test_size))
+        except ValueError:
+            test_size = 0.2
+
+        nuevos = m_pred.evaluar(df, target_col,
+                                top_features=top_features,
+                                test_size=test_size,
+                                k_vecinos=k)
+        modelos_entrenados.update(nuevos)
+
+    elif sub == "b":
+        if not modelos_entrenados:
+            print(f"\n  {Fore.RED}[ERROR] Primero evalúa los modelos (opcion 9 → a).")
+        else:
+            m_pred.predecir_nuevo(modelos_entrenados, df, target_col, top_features)
+
+    elif sub != "0":
+        print(f"  {Fore.RED}[ERROR] Opcion no válida.")
+
+    return modelos_entrenados
+
+
+# ─── MAIN ─────────────────────────────────────────────────────────────────────
 def main():
     limpiar_pantalla()
     banner()
 
-    df              = None
-    target_col      = None
-    nombre_archivo  = None
-    ultimo_resumen  = None
-    resultados_weka = None
+    df               = None
+    target_col       = None
+    nombre_archivo   = None
+    ultimo_resumen   = None
+    resultados_weka  = None
+    modelos_entrenados = {}
 
     while True:
-        opcion = menu_principal(weka_ok=m_weka.weka_disponible())
+        opcion = menu_principal(weka_ok=_weka_disponible())
 
-        # ── [1] CARGAR CSV ───────────────────────────────────────────────────
         if opcion == "1":
             df_nuevo, nombre_nuevo = cargar_csv()
             if df_nuevo is not None:
                 print(f"\n{Fore.CYAN}  Vista previa (3 filas):")
                 print(df_nuevo.head(3).to_string())
-
                 es_valido, _, _ = validar_dataset(df_nuevo)
                 if not es_valido:
-                    r = input(
-                        f"\n  {Fore.RED}Errores criticos. ¿Continuar de todas formas? (s/N): "
-                        f"{Fore.GREEN}"
-                    ).strip().lower()
+                    r = input(f"\n  {Fore.RED}Errores criticos. ¿Continuar? (s/N): {Fore.GREEN}").strip().lower()
                     if r != "s":
-                        print(f"  {Fore.YELLOW}[INFO] Carga cancelada.")
-                        pausar(); limpiar_pantalla(); banner()
-                        continue
-
-                df              = df_nuevo
-                nombre_archivo  = nombre_nuevo
-                target_col      = elegir_target(df)
-                ultimo_resumen  = None
-                resultados_weka = None
+                        pausar(); limpiar_pantalla(); banner(); continue
+                df                 = df_nuevo
+                nombre_archivo     = nombre_nuevo
+                target_col         = elegir_target(df)
+                ultimo_resumen     = None
+                resultados_weka    = None
+                modelos_entrenados = {}
                 if target_col:
                     validar_target(df, target_col)
 
-        # ── [2] CORRELACIÓN ──────────────────────────────────────────────────
         elif opcion == "2":
             if df is None or target_col is None:
                 print(f"\n  {Fore.RED}[ERROR] Primero carga un CSV (opcion 1).")
             else:
                 m_correlacion.ejecutar(df, target_col)
 
-        # ── [3] CHI2 ─────────────────────────────────────────────────────────
         elif opcion == "3":
             if df is None or target_col is None:
                 print(f"\n  {Fore.RED}[ERROR] Primero carga un CSV (opcion 1).")
             else:
                 m_chi2.ejecutar(df, target_col)
 
-        # ── [4] RANDOM FOREST ────────────────────────────────────────────────
         elif opcion == "4":
             if df is None or target_col is None:
                 print(f"\n  {Fore.RED}[ERROR] Primero carga un CSV (opcion 1).")
             else:
                 m_rf.ejecutar(df, target_col)
 
-        # ── [5] GOWER ────────────────────────────────────────────────────────
         elif opcion == "5":
             if df is None or target_col is None:
                 print(f"\n  {Fore.RED}[ERROR] Primero carga un CSV (opcion 1).")
             else:
                 m_gower.ejecutar(df, target_col)
 
-        # ── [6] WEKA ─────────────────────────────────────────────────────────
         elif opcion == "6":
-            if df is None or target_col is None:
+            if not _WEKA_OK:
+                print(f"\n  {Fore.RED}[ERROR] Modulo weka_attsel.py no encontrado.")
+            elif df is None or target_col is None:
                 print(f"\n  {Fore.RED}[ERROR] Primero carga un CSV (opcion 1).")
             else:
-                print(f"\n  {Fore.YELLOW}[INFO] Iniciando evaluadores de Weka...")
                 resultados_weka = m_weka.ejecutar(df, target_col)
-                if not resultados_weka.get("disponible"):
-                    print(f"\n  {Fore.YELLOW}[TIP] Para activar Weka:")
-                    print(f"  {Fore.WHITE}    1. Instala Java JDK 8+  →  https://adoptium.net")
-                    print(f"  {Fore.WHITE}    2. pip install python-weka-wrapper3 jpype1")
-                    print(f"  {Fore.WHITE}    3. Configura JAVA_HOME y reinicia")
 
-        # ── [7] COMPARAR TODOS ───────────────────────────────────────────────
         elif opcion == "7":
             if df is None or target_col is None:
                 print(f"\n  {Fore.RED}[ERROR] Primero carga un CSV (opcion 1).")
             else:
-                if resultados_weka is None and m_weka.weka_disponible():
-                    r = input(
-                        f"\n  {Fore.CYAN}¿Ejecutar Weka para cross-validation? (S/n): "
-                        f"{Fore.GREEN}"
-                    ).strip().lower()
+                if resultados_weka is None and _weka_disponible():
+                    r = input(f"\n  {Fore.CYAN}¿Ejecutar Weka? (S/n): {Fore.GREEN}").strip().lower()
                     if r != "n":
                         resultados_weka = m_weka.ejecutar(df, target_col)
-
                 ultimo_resumen = comparar_metodos(
-                    df, target_col, nombre_archivo, resultados_weka
-                )
+                    df, target_col, nombre_archivo, resultados_weka)
 
-        # ── [8] EXPORTAR ─────────────────────────────────────────────────────
         elif opcion == "8":
             if ultimo_resumen is None:
-                print(f"\n  {Fore.RED}[ERROR] Primero ejecuta la comparacion (opcion 7).")
+                print(f"\n  {Fore.RED}[ERROR] Primero ejecuta comparacion (opcion 7).")
             else:
                 exportar_resultados(ultimo_resumen)
 
-        # ── [0] SALIR ────────────────────────────────────────────────────────
+        elif opcion == "9":
+            if df is None or target_col is None:
+                print(f"\n  {Fore.RED}[ERROR] Primero carga un CSV (opcion 1).")
+            else:
+                modelos_entrenados = menu_prediccion(
+                    df, target_col, ultimo_resumen, modelos_entrenados)
+
         elif opcion == "0":
-            m_weka.detener_jvm()
+            if _WEKA_OK and m_weka:
+                m_weka.detener_jvm()
             print(f"\n{Fore.CYAN}  Hasta luego.\n")
             break
 
         else:
-            print(f"\n  {Fore.RED}[ERROR] Opcion no valida (0-8).")
+            print(f"\n  {Fore.RED}[ERROR] Opcion no valida (0-9).")
 
         pausar()
         limpiar_pantalla()

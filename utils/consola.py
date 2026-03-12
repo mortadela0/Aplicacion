@@ -46,6 +46,8 @@ def menu_principal(weka_ok: bool = False) -> str:
     print(f"  {Fore.CYAN}  ── Comparacion y exportacion ─────────────────────────────")
     print(f"  {Fore.WHITE}[7]{Fore.YELLOW}  Comparar TODOS los metodos    (incluye Weka si activo)")
     print(f"  {Fore.WHITE}[8]{Fore.YELLOW}  Exportar resultados a CSV")
+    print(f"  {Fore.CYAN}  ── Prediccion ────────────────────────────────────────────")
+    print(f"  {Fore.WHITE}[9]{Fore.YELLOW}  Predecir                      (KNN / Logistica / Lineal)")
     print(f"  {Fore.WHITE}[0]{Fore.RED}  Salir")
     print(f"{Fore.CYAN}{'─'*70}")
     return input(f"{Fore.WHITE}  Selecciona opcion: {Fore.GREEN}").strip()

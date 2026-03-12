@@ -1,0 +1,1478 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Selector de Variables — ML Studio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Syne:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg-deep:    #060e1f;
+  --bg-dark:    #0a1628;
+  --bg-card:    #0d1e35;
+  --bg-hover:   #112240;
+  --border:     #1e3a5f;
+  --border-lit: #2d5a8e;
+  --blue-pri:   #4a9eff;
+  --blue-lit:   #7eb3ff;
+  --blue-dim:   #2d6cbf;
+  --blue-deep:  #1a3d6b;
+  --teal:       #2dd4bf;
+  --white:      #f0f6ff;
+  --muted:      #6b8cae;
+  --success:    #34d399;
+  --warning:    #fbbf24;
+  --danger:     #f87171;
+  --radius:     10px;
+  --radius-lg:  16px;
+  --font-ui:    'Syne', sans-serif;
+  --font-mono:  'JetBrains Mono', monospace;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--bg-deep);
+  color: var(--white);
+  font-family: var(--font-ui);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* ── SIDEBAR ── */
+.sidebar {
+  position: fixed; left: 0; top: 0; bottom: 0;
+  width: 220px;
+  background: var(--bg-dark);
+  border-right: 1px solid var(--border);
+  display: flex; flex-direction: column;
+  z-index: 100;
+  padding: 0 0 24px;
+}
+
+.sidebar-logo {
+  padding: 24px 20px 20px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 16px;
+}
+.sidebar-logo .logo-text {
+  font-size: 13px; font-weight: 800;
+  color: var(--blue-pri);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.sidebar-logo .logo-sub {
+  font-size: 10px; color: var(--muted);
+  font-family: var(--font-mono);
+  margin-top: 3px;
+}
+
+.nav-section {
+  padding: 0 12px;
+  margin-bottom: 8px;
+}
+.nav-label {
+  font-size: 9px; color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  padding: 0 8px 6px;
+}
+.nav-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 12px;
+  border-radius: var(--radius);
+  cursor: pointer;
+  font-size: 13px; font-weight: 600;
+  color: var(--muted);
+  transition: all 0.18s ease;
+  border: 1px solid transparent;
+  text-decoration: none;
+  margin-bottom: 2px;
+}
+.nav-item:hover {
+  color: var(--blue-lit);
+  background: var(--bg-hover);
+  border-color: var(--border);
+}
+.nav-item.active {
+  color: var(--blue-pri);
+  background: var(--blue-deep);
+  border-color: var(--border-lit);
+}
+.nav-item .nav-icon {
+  font-size: 15px; width: 18px; text-align: center;
+}
+.nav-badge {
+  margin-left: auto;
+  font-size: 9px; font-family: var(--font-mono);
+  background: var(--blue-deep);
+  color: var(--blue-lit);
+  padding: 2px 6px;
+  border-radius: 20px;
+  border: 1px solid var(--border-lit);
+}
+
+.sidebar-status {
+  margin-top: auto;
+  padding: 12px 20px;
+  border-top: 1px solid var(--border);
+}
+.status-row {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 11px; color: var(--muted);
+  font-family: var(--font-mono);
+  margin-bottom: 4px;
+}
+.dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--muted);
+  flex-shrink: 0;
+}
+.dot.ok   { background: var(--success); box-shadow: 0 0 6px var(--success); }
+.dot.warn { background: var(--warning); box-shadow: 0 0 6px var(--warning); }
+.dot.off  { background: var(--danger); }
+
+/* ── MAIN ── */
+.main {
+  margin-left: 220px;
+  min-height: 100vh;
+  display: flex; flex-direction: column;
+}
+
+.topbar {
+  height: 56px;
+  background: var(--bg-dark);
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center;
+  padding: 0 28px;
+  gap: 16px;
+  position: sticky; top: 0; z-index: 50;
+}
+.topbar-title {
+  font-size: 15px; font-weight: 800;
+  color: var(--white);
+}
+.topbar-sub {
+  font-size: 11px; color: var(--muted);
+  font-family: var(--font-mono);
+}
+.topbar-actions { margin-left: auto; display: flex; gap: 10px; }
+
+.content {
+  padding: 28px;
+  flex: 1;
+}
+
+/* ── PANELS ── */
+.panel {
+  display: none;
+  animation: fadeIn 0.2s ease;
+}
+.panel.active { display: block; }
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── CARDS ── */
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  margin-bottom: 20px;
+}
+.card-title {
+  font-size: 13px; font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--blue-lit);
+  margin-bottom: 16px;
+  display: flex; align-items: center; gap: 8px;
+}
+.card-title::before {
+  content: '';
+  width: 3px; height: 14px;
+  background: var(--blue-pri);
+  border-radius: 2px;
+}
+
+.grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+.grid-3 {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 16px;
+}
+
+/* ── UPLOAD ZONE ── */
+.upload-zone {
+  border: 2px dashed var(--border-lit);
+  border-radius: var(--radius-lg);
+  padding: 48px 32px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background: linear-gradient(135deg, #0d1e3510, #112240);
+  position: relative;
+}
+.upload-zone:hover,
+.upload-zone.drag-over {
+  border-color: var(--blue-pri);
+  background: var(--blue-deep);
+}
+.upload-zone input[type=file] {
+  position: absolute; inset: 0;
+  opacity: 0; cursor: pointer;
+  width: 100%; height: 100%;
+}
+.upload-icon { font-size: 40px; margin-bottom: 12px; }
+.upload-text {
+  font-size: 14px; color: var(--blue-lit); font-weight: 600;
+}
+.upload-sub { font-size: 11px; color: var(--muted); margin-top: 6px; }
+
+/* ── STATS ── */
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.stat-box {
+  background: var(--bg-dark);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px;
+  text-align: center;
+}
+.stat-val {
+  font-size: 22px; font-weight: 800;
+  color: var(--blue-pri);
+  font-family: var(--font-mono);
+}
+.stat-lbl {
+  font-size: 10px; color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-top: 4px;
+}
+
+/* ── TABLE ── */
+.tbl-wrap {
+  overflow-x: auto;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+}
+table {
+  width: 100%; border-collapse: collapse;
+  font-size: 12px;
+}
+th {
+  background: var(--bg-dark);
+  color: var(--blue-lit);
+  padding: 10px 14px;
+  text-align: left;
+  font-weight: 600;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+td {
+  padding: 9px 14px;
+  border-bottom: 1px solid var(--border);
+  color: var(--white);
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: var(--bg-hover); }
+
+.badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 20px;
+  font-size: 10px;
+  font-family: var(--font-mono);
+  font-weight: 600;
+}
+.badge-string { background: #052e16; color: var(--success); border: 1px solid #166534; }
+.badge-int    { background: #1c1500; color: var(--warning); border: 1px solid #854d0e; }
+.badge-float  { background: #0c1a33; color: var(--blue-lit); border: 1px solid var(--border-lit); }
+
+/* ── CONTROLS ── */
+.row { display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap; }
+
+label {
+  font-size: 11px; color: var(--blue-lit);
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  display: block; margin-bottom: 6px;
+}
+select, input[type=text], input[type=number], input[type=range] {
+  background: var(--bg-dark);
+  border: 1px solid var(--border);
+  color: var(--white);
+  border-radius: var(--radius);
+  padding: 9px 12px;
+  font-size: 12px;
+  font-family: var(--font-mono);
+  outline: none;
+  transition: border-color 0.15s;
+  width: 100%;
+}
+select:focus, input:focus {
+  border-color: var(--blue-pri);
+  box-shadow: 0 0 0 2px #4a9eff22;
+}
+.form-group { flex: 1; min-width: 140px; }
+
+/* ── BUTTONS ── */
+.btn {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 10px 20px;
+  border-radius: var(--radius);
+  font-family: var(--font-ui);
+  font-size: 12px; font-weight: 700;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: all 0.15s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  white-space: nowrap;
+}
+.btn-primary {
+  background: var(--blue-pri);
+  color: var(--bg-deep);
+  border-color: var(--blue-pri);
+}
+.btn-primary:hover {
+  background: var(--blue-lit);
+  border-color: var(--blue-lit);
+}
+.btn-secondary {
+  background: transparent;
+  color: var(--blue-lit);
+  border-color: var(--border-lit);
+}
+.btn-secondary:hover {
+  background: var(--bg-hover);
+  border-color: var(--blue-pri);
+}
+.btn-success {
+  background: #065f46;
+  color: var(--success);
+  border-color: #059669;
+}
+.btn-success:hover { background: #047857; }
+.btn-danger {
+  background: #450a0a;
+  color: var(--danger);
+  border-color: #dc2626;
+}
+.btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* ── CHECKBOX GROUP ── */
+.check-group {
+  display: flex; flex-wrap: wrap; gap: 10px;
+}
+.check-item {
+  display: flex; align-items: center; gap: 7px;
+  padding: 8px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: all 0.15s;
+  font-size: 12px; color: var(--muted);
+}
+.check-item:hover { border-color: var(--border-lit); color: var(--blue-lit); }
+.check-item input { display: none; }
+.check-item.checked {
+  background: var(--blue-deep);
+  border-color: var(--blue-pri);
+  color: var(--white);
+}
+
+/* ── ALERTS / TOAST ── */
+.toast-container {
+  position: fixed; bottom: 28px; right: 28px;
+  display: flex; flex-direction: column; gap: 10px;
+  z-index: 999;
+}
+.toast {
+  min-width: 260px; max-width: 360px;
+  padding: 14px 18px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+  display: flex; align-items: flex-start; gap: 10px;
+  animation: slideIn 0.2s ease;
+  box-shadow: 0 8px 32px #00000080;
+}
+@keyframes slideIn {
+  from { transform: translateX(40px); opacity: 0; }
+  to   { transform: translateX(0); opacity: 1; }
+}
+.toast.success { border-color: #059669; }
+.toast.error   { border-color: #dc2626; }
+.toast.info    { border-color: var(--blue-pri); }
+.toast-icon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+.toast-msg  { font-size: 12px; line-height: 1.5; }
+.toast-title { font-weight: 700; font-size: 13px; margin-bottom: 2px; }
+
+/* ── SPINNER ── */
+.spinner {
+  display: inline-block;
+  width: 16px; height: 16px;
+  border: 2px solid var(--border);
+  border-top-color: var(--blue-pri);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── PROGRESS BAR ── */
+.bar-wrap {
+  background: var(--bg-dark);
+  border-radius: 4px;
+  height: 6px;
+  overflow: hidden;
+}
+.bar-fill {
+  height: 100%;
+  border-radius: 4px;
+  background: linear-gradient(90deg, var(--blue-dim), var(--blue-pri));
+  transition: width 0.4s ease;
+}
+
+/* ── GRAFICAS ── */
+.grafica-wrap {
+  text-align: center;
+  background: var(--bg-deep);
+  border-radius: var(--radius);
+  padding: 4px;
+  border: 1px solid var(--border);
+}
+.grafica-wrap img { max-width: 100%; border-radius: 8px; }
+
+/* ── GOWER MATRIX ── */
+.gower-legend {
+  display: flex; gap: 16px; align-items: center;
+  font-size: 11px; color: var(--muted);
+  margin-top: 12px;
+  font-family: var(--font-mono);
+}
+.legend-dot {
+  width: 12px; height: 12px; border-radius: 2px;
+}
+
+/* ── PREDICTION FORM ── */
+.pred-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.pred-result {
+  background: var(--blue-deep);
+  border: 1px solid var(--blue-pri);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  text-align: center;
+}
+.pred-val {
+  font-size: 36px; font-weight: 800;
+  color: var(--blue-pri);
+  font-family: var(--font-mono);
+}
+.pred-lbl { font-size: 11px; color: var(--muted); margin-top: 4px; }
+
+/* ── REPORT ── */
+.report-section {
+  margin-bottom: 32px;
+}
+.report-h2 {
+  font-size: 12px; font-weight: 800;
+  color: var(--blue-lit);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 8px;
+  margin-bottom: 16px;
+}
+
+/* ── SCORE BAR INLINE ── */
+.score-bar {
+  display: flex; align-items: center; gap: 8px;
+}
+.score-num {
+  font-family: var(--font-mono); font-size: 11px;
+  color: var(--blue-lit); min-width: 80px;
+}
+
+/* ── LOADING OVERLAY ── */
+#loading-overlay {
+  display: none;
+  position: fixed; inset: 0;
+  background: #06101fcc;
+  z-index: 900;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 16px;
+}
+#loading-overlay.show { display: flex; }
+.loading-spinner {
+  width: 44px; height: 44px;
+  border: 3px solid var(--border);
+  border-top-color: var(--blue-pri);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+.loading-text {
+  font-size: 14px; color: var(--blue-lit);
+  font-family: var(--font-mono);
+}
+
+/* ── TARGET SELECTOR ── */
+.col-selector-list {
+  max-height: 260px;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+.col-option {
+  display: flex; align-items: center;
+  padding: 9px 14px;
+  cursor: pointer;
+  transition: background 0.12s;
+  gap: 10px;
+  border-bottom: 1px solid var(--border);
+}
+.col-option:last-child { border-bottom: none; }
+.col-option:hover { background: var(--bg-hover); }
+.col-option.selected { background: var(--blue-deep); }
+.col-type-badge {
+  font-size: 9px; padding: 1px 6px;
+  border-radius: 10px;
+  font-family: var(--font-mono);
+}
+.col-name { font-size: 12px; font-weight: 600; flex: 1; }
+.col-info { font-size: 10px; color: var(--muted); font-family: var(--font-mono); }
+
+/* ── RUN ALL BUTTON ── */
+.run-all-wrap {
+  background: linear-gradient(135deg, var(--blue-deep), #0a1628);
+  border: 1px solid var(--border-lit);
+  border-radius: var(--radius-lg);
+  padding: 20px 24px;
+  display: flex; align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+}
+.run-all-text h3 { font-size: 14px; font-weight: 800; }
+.run-all-text p  { font-size: 11px; color: var(--muted); margin-top: 3px; }
+
+.divider {
+  height: 1px;
+  background: var(--border);
+  margin: 24px 0;
+}
+
+/* scrollbar */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--bg-dark); }
+::-webkit-scrollbar-thumb { background: var(--border-lit); border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<!-- LOADING OVERLAY -->
+<div id="loading-overlay">
+  <div class="loading-spinner"></div>
+  <div class="loading-text" id="loading-text">Procesando...</div>
+</div>
+
+<!-- TOAST CONTAINER -->
+<div class="toast-container" id="toast-container"></div>
+
+<!-- SIDEBAR -->
+<nav class="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-text">ML Studio</div>
+    <div class="logo-sub">v2.2 · Selector de Variables</div>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-label">Datos</div>
+    <a class="nav-item active" onclick="showPanel('dataset')" href="#">
+      <span class="nav-icon">📂</span> Dataset
+    </a>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-label">Análisis</div>
+    <a class="nav-item" onclick="showPanel('selectores')" href="#">
+      <span class="nav-icon">🎯</span> Selectores
+    </a>
+    <a class="nav-item" onclick="showPanel('clasificadores')" href="#">
+      <span class="nav-icon">🧠</span> Clasificadores
+    </a>
+    <a class="nav-item" onclick="showPanel('gower')" href="#">
+      <span class="nav-icon">🔵</span> Gower
+    </a>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-label">Resultados</div>
+    <a class="nav-item" onclick="showPanel('prediccion')" href="#">
+      <span class="nav-icon">🔮</span> Predicción
+    </a>
+    <a class="nav-item" onclick="showPanel('reporte')" href="#">
+      <span class="nav-icon">📊</span> Reporte
+    </a>
+  </div>
+
+  <div class="sidebar-status">
+    <div class="status-row">
+      <span class="dot" id="dot-dataset"></span>
+      <span id="status-dataset">Sin dataset</span>
+    </div>
+    <div class="status-row">
+      <span class="dot" id="dot-target"></span>
+      <span id="status-target">Sin target</span>
+    </div>
+    <div class="status-row">
+      <span class="dot" id="dot-weka" style="background:var(--muted)"></span>
+      <span>Weka</span>
+    </div>
+  </div>
+</nav>
+
+<!-- MAIN -->
+<main class="main">
+  <div class="topbar">
+    <span class="topbar-title" id="topbar-title">Dataset</span>
+    <span class="topbar-sub" id="topbar-sub">Carga tu CSV para comenzar</span>
+    <div class="topbar-actions">
+      <button class="btn btn-success" onclick="ejecutarTodo()" id="btn-run-all" disabled>
+        ▶ Ejecutar Todo
+      </button>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <!-- ══════════════ PANEL: DATASET ══════════════ -->
+    <div class="panel active" id="panel-dataset">
+
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title">Cargar CSV</div>
+          <div class="upload-zone" id="upload-zone">
+            <input type="file" id="file-input" accept=".csv,.tsv,.txt">
+            <div class="upload-icon">📁</div>
+            <div class="upload-text">Arrastra tu CSV aquí o haz clic</div>
+            <div class="upload-sub">Formatos: CSV, TSV — máx. 16 MB</div>
+          </div>
+          <div class="row" style="margin-top:14px">
+            <div class="form-group">
+              <label>Separador</label>
+              <select id="sep-select">
+                <option value=",">Coma (,)</option>
+                <option value=";">Punto y coma (;)</option>
+                <option value="tab">Tabulador</option>
+              </select>
+            </div>
+            <button class="btn btn-primary" onclick="cargarCSV()">
+              ↑ Cargar
+            </button>
+          </div>
+        </div>
+
+        <div class="card" id="card-info" style="display:none">
+          <div class="card-title">Información del Dataset</div>
+          <div class="stat-grid" id="stat-grid"></div>
+          <div style="margin-top:12px">
+            <div class="card-title">Seleccionar Target (Clase)</div>
+            <div class="col-selector-list" id="col-selector-list"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card" id="card-preview" style="display:none">
+        <div class="card-title">Vista Previa — 5 filas</div>
+        <div class="tbl-wrap" id="preview-table"></div>
+      </div>
+
+    </div>
+
+    <!-- ══════════════ PANEL: SELECTORES ══════════════ -->
+    <div class="panel" id="panel-selectores">
+      <div class="run-all-wrap">
+        <div class="run-all-text">
+          <h3>Selectores de Variables</h3>
+          <p>Correlation · Chi² / F-score · Random Forest · Gower · Weka</p>
+        </div>
+        <button class="btn btn-primary" onclick="ejecutarSelector('todos')">
+          ▶ Ejecutar Todos
+        </button>
+      </div>
+
+      <div class="grid-2" style="margin-bottom:16px">
+        <div class="card">
+          <div class="card-title">Método individual</div>
+          <div class="row">
+            <div class="form-group">
+              <label>Selector</label>
+              <select id="sel-metodo">
+                <option value="correlacion">Correlación de Pearson</option>
+                <option value="chi2">Chi² / F-score</option>
+                <option value="random_forest">Random Forest Gini</option>
+                <option value="gower">Gower Distance</option>
+                <option value="weka">Weka (InfoGain)</option>
+              </select>
+            </div>
+            <button class="btn btn-secondary" onclick="ejecutarSelector(document.getElementById('sel-metodo').value)">
+              ▶ Ejecutar
+            </button>
+          </div>
+        </div>
+        <div class="card" id="card-sel-stats" style="display:none">
+          <div class="card-title">Resumen</div>
+          <div id="sel-stats-content"></div>
+        </div>
+      </div>
+
+      <div class="card" id="card-sel-result" style="display:none">
+        <div class="card-title" id="sel-result-title">Resultado</div>
+        <div class="grid-2">
+          <div class="tbl-wrap" id="sel-result-table"></div>
+          <div class="grafica-wrap" id="sel-result-graph"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════ PANEL: CLASIFICADORES ══════════════ -->
+    <div class="panel" id="panel-clasificadores">
+
+      <div class="card">
+        <div class="card-title">Configuración</div>
+        <div style="margin-bottom:16px">
+          <label>Clasificadores</label>
+          <div class="check-group" id="clf-checks">
+            <div class="check-item checked" data-val="j48" onclick="toggleCheck(this)">
+              <input type="checkbox" checked> J48 (árbol C4.5)
+            </div>
+            <div class="check-item checked" data-val="naive_bayes" onclick="toggleCheck(this)">
+              <input type="checkbox" checked> Naive Bayes
+            </div>
+            <div class="check-item checked" data-val="ibk" onclick="toggleCheck(this)">
+              <input type="checkbox" checked> IBk (KNN)
+            </div>
+            <div class="check-item checked" data-val="smo" onclick="toggleCheck(this)">
+              <input type="checkbox" checked> SMO (SVM)
+            </div>
+          </div>
+        </div>
+        <div class="row">
+          <div class="form-group">
+            <label>% Test split</label>
+            <input type="number" id="clf-test-size" value="20" min="10" max="40">
+          </div>
+          <div class="form-group">
+            <label>K vecinos (IBk)</label>
+            <input type="number" id="clf-k" value="3" min="1" max="20">
+          </div>
+          <div class="form-group">
+            <label>Kernel SMO</label>
+            <select id="clf-kernel">
+              <option value="rbf">RBF</option>
+              <option value="linear">Lineal</option>
+              <option value="poly">Polinomial</option>
+            </select>
+          </div>
+          <button class="btn btn-primary" onclick="ejecutarClasificadores()">
+            ▶ Entrenar
+          </button>
+        </div>
+      </div>
+
+      <div id="clf-results" style="display:none">
+        <div class="card">
+          <div class="card-title">Comparación de Modelos</div>
+          <div class="tbl-wrap" id="clf-table"></div>
+        </div>
+        <div class="card">
+          <div class="card-title">Gráfica Comparativa</div>
+          <div class="grafica-wrap" id="clf-graph"></div>
+        </div>
+        <div id="clf-matrices"></div>
+      </div>
+    </div>
+
+    <!-- ══════════════ PANEL: GOWER ══════════════ -->
+    <div class="panel" id="panel-gower">
+      <div class="card">
+        <div class="card-title">Parámetros</div>
+        <div class="row">
+          <div class="form-group">
+            <label>Máx. instancias</label>
+            <input type="number" id="gower-max" value="30" min="5" max="100">
+          </div>
+          <button class="btn btn-primary" onclick="calcularGower()">
+            ▶ Calcular
+          </button>
+        </div>
+      </div>
+
+      <div id="gower-results" style="display:none">
+        <div class="grid-2">
+          <div class="card">
+            <div class="card-title">Mapa de Similitud</div>
+            <div class="grafica-wrap" id="gower-heatmap"></div>
+          </div>
+          <div class="card">
+            <div class="card-title">Vecino más cercano</div>
+            <div class="tbl-wrap" id="gower-vecinos"></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title">Matriz de Similitud (primeras 10 instancias)</div>
+          <div class="tbl-wrap" id="gower-matrix-table"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════ PANEL: PREDICCIÓN ══════════════ -->
+    <div class="panel" id="panel-prediccion">
+      <div class="card">
+        <div class="card-title">Configuración</div>
+        <div class="row" style="margin-bottom:16px">
+          <div class="form-group">
+            <label>Modelo</label>
+            <select id="pred-modelo">
+              <option value="j48">J48 (árbol C4.5)</option>
+              <option value="naive_bayes">Naive Bayes</option>
+              <option value="ibk">IBk (KNN)</option>
+              <option value="smo">SMO (SVM)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>% Test split (entrenamiento)</label>
+            <input type="number" id="pred-test-size" value="20" min="10" max="40">
+          </div>
+        </div>
+        <label>Valores de la instancia nueva</label>
+        <div class="pred-grid" id="pred-inputs"></div>
+        <button class="btn btn-primary" onclick="predecir()">
+          🔮 Predecir
+        </button>
+      </div>
+
+      <div id="pred-result-wrap" style="display:none" class="card">
+        <div class="card-title">Resultado</div>
+        <div class="pred-result">
+          <div class="pred-val" id="pred-val">—</div>
+          <div class="pred-lbl" id="pred-lbl">clase predicha</div>
+        </div>
+        <div id="pred-probas" style="margin-top:16px"></div>
+      </div>
+    </div>
+
+    <!-- ══════════════ PANEL: REPORTE ══════════════ -->
+    <div class="panel" id="panel-reporte">
+      <div style="text-align:center; padding: 40px 0" id="reporte-placeholder">
+        <div style="font-size:40px; margin-bottom:12px">📊</div>
+        <p style="color:var(--muted); font-size:13px">
+          Usa el botón <strong style="color:var(--blue-lit)">▶ Ejecutar Todo</strong>
+          para generar el reporte completo
+        </p>
+        <button class="btn btn-primary" style="margin-top:16px" onclick="ejecutarTodo()">
+          ▶ Ejecutar Todo Ahora
+        </button>
+      </div>
+      <div id="reporte-contenido" style="display:none"></div>
+    </div>
+
+  </div><!-- /content -->
+</main>
+
+<script>
+// ═══════════════════════════════════════════════════════
+//  STATE
+// ═══════════════════════════════════════════════════════
+const S = {
+  dataset:    null,
+  target:     null,
+  columnas:   [],
+  headers:    [],
+};
+
+// ═══════════════════════════════════════════════════════
+//  NAVIGATION
+// ═══════════════════════════════════════════════════════
+function showPanel(id) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('panel-' + id).classList.add('active');
+  const navMap = {
+    dataset:'dataset', selectores:'selectores',
+    clasificadores:'clasificadores', gower:'gower',
+    prediccion:'prediccion', reporte:'reporte'
+  };
+  const titles = {
+    dataset:'Dataset', selectores:'Selectores de Variables',
+    clasificadores:'Clasificadores', gower:'Distancia & Similitud Gower',
+    prediccion:'Predicción', reporte:'Reporte Completo'
+  };
+  document.getElementById('topbar-title').textContent = titles[id] || id;
+  event?.target?.closest('.nav-item')?.classList.add('active');
+}
+
+// ═══════════════════════════════════════════════════════
+//  TOAST
+// ═══════════════════════════════════════════════════════
+function toast(msg, type='info', title='') {
+  const icons = { success:'✅', error:'❌', info:'ℹ️', warn:'⚠️' };
+  const el = document.createElement('div');
+  el.className = `toast ${type}`;
+  el.innerHTML = `
+    <span class="toast-icon">${icons[type]||'ℹ️'}</span>
+    <div class="toast-msg">
+      ${title ? `<div class="toast-title">${title}</div>` : ''}
+      ${msg}
+    </div>`;
+  document.getElementById('toast-container').appendChild(el);
+  setTimeout(() => el.remove(), 4500);
+}
+
+// ═══════════════════════════════════════════════════════
+//  LOADING
+// ═══════════════════════════════════════════════════════
+function loading(show, text='Procesando...') {
+  const ov = document.getElementById('loading-overlay');
+  document.getElementById('loading-text').textContent = text;
+  ov.classList.toggle('show', show);
+}
+
+// ═══════════════════════════════════════════════════════
+//  API HELPER
+// ═══════════════════════════════════════════════════════
+async function api(url, body, loadText) {
+  loading(true, loadText || 'Procesando...');
+  try {
+    const isForm = body instanceof FormData;
+    const opts = {
+      method: 'POST',
+      body: isForm ? body : JSON.stringify(body),
+    };
+    if (!isForm) opts.headers = { 'Content-Type': 'application/json' };
+    const r = await fetch(url, opts);
+    const d = await r.json();
+    if (d.error) throw new Error(d.error);
+    return d;
+  } finally {
+    loading(false);
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+//  CARGAR CSV
+// ═══════════════════════════════════════════════════════
+document.getElementById('file-input').addEventListener('change', cargarCSV);
+
+const uz = document.getElementById('upload-zone');
+uz.addEventListener('dragover', e => { e.preventDefault(); uz.classList.add('drag-over'); });
+uz.addEventListener('dragleave', () => uz.classList.remove('drag-over'));
+uz.addEventListener('drop', e => {
+  e.preventDefault(); uz.classList.remove('drag-over');
+  const f = e.dataTransfer.files[0];
+  if (f) { document.getElementById('file-input').files = e.dataTransfer.files; cargarCSV(); }
+});
+
+async function cargarCSV() {
+  const fi  = document.getElementById('file-input');
+  const sep = document.getElementById('sep-select').value;
+  if (!fi.files.length) return;
+
+  const fd = new FormData();
+  fd.append('archivo', fi.files[0]);
+  fd.append('separador', sep);
+
+  try {
+    const d = await api('/api/cargar', fd, 'Cargando dataset...');
+    S.dataset  = d;
+    S.columnas = d.columnas;
+    S.headers  = d.headers;
+    S.target   = null;
+
+    renderStats(d);
+    renderColSelector(d.columnas);
+    renderPreview(d.preview, d.headers);
+
+    document.getElementById('card-info').style.display = '';
+    document.getElementById('card-preview').style.display = '';
+
+    updateStatus('dataset', true, `${d.filas} × ${d.columnas_count}`);
+    updateStatus('target', false, 'Sin target');
+    document.getElementById('btn-run-all').disabled = true;
+
+    toast(`Dataset cargado: ${d.nombre}`, 'success', 'Listo');
+  } catch(e) {
+    toast(e.message, 'error', 'Error');
+  }
+}
+
+function renderStats(d) {
+  document.getElementById('stat-grid').innerHTML = `
+    <div class="stat-box"><div class="stat-val">${d.filas}</div><div class="stat-lbl">Instancias</div></div>
+    <div class="stat-box"><div class="stat-val">${d.columnas_count}</div><div class="stat-lbl">Atributos</div></div>
+  `;
+}
+
+function renderColSelector(cols) {
+  const el = document.getElementById('col-selector-list');
+  el.innerHTML = cols.map(c => {
+    const bc = c.icono === '✓' ? 'badge-string' : c.icono === '~' ? 'badge-int' : 'badge-float';
+    return `
+    <div class="col-option" onclick="seleccionarTarget('${c.nombre}', this)">
+      <span class="col-type-badge ${bc}">${c.icono}</span>
+      <span class="col-name">${c.nombre}</span>
+      <span class="col-info">${c.tipo}</span>
+      ${c.nulos > 0 ? `<span class="badge" style="background:#450a0a;color:#f87171">${c.nulos} nulos</span>` : ''}
+    </div>`;
+  }).join('');
+}
+
+function renderPreview(rows, headers) {
+  if (!rows || !rows.length) return;
+  const ths = headers.map(h => `<th>${h}</th>`).join('');
+  const trs = rows.map(row =>
+    '<tr>' + headers.map(h => `<td>${row[h] ?? ''}</td>`).join('') + '</tr>'
+  ).join('');
+  document.getElementById('preview-table').innerHTML =
+    `<table><thead><tr>${ths}</tr></thead><tbody>${trs}</tbody></table>`;
+}
+
+async function seleccionarTarget(col, el) {
+  document.querySelectorAll('.col-option').forEach(e => e.classList.remove('selected'));
+  el.classList.add('selected');
+  try {
+    const d = await api('/api/set_target', { columna: col }, 'Configurando target...');
+    S.target = col;
+    updateStatus('target', true, `Target: ${col} (${d.n_clases} clases)`);
+    document.getElementById('btn-run-all').disabled = false;
+    buildPredInputs();
+    toast(`Target: ${col} — ${d.n_clases} clases: ${d.muestra.join(', ')}`, 'success');
+  } catch(e) {
+    toast(e.message, 'error', 'Error');
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+//  STATUS BAR
+// ═══════════════════════════════════════════════════════
+function updateStatus(key, ok, text) {
+  const dot = document.getElementById(`dot-${key}`);
+  const lbl = document.getElementById(`status-${key}`);
+  if (dot) dot.className = 'dot ' + (ok ? 'ok' : 'warn');
+  if (lbl) lbl.textContent = text;
+}
+
+// ═══════════════════════════════════════════════════════
+//  CHECKBOXES CLASIFICADORES
+// ═══════════════════════════════════════════════════════
+function toggleCheck(el) {
+  el.classList.toggle('checked');
+}
+
+function getChecked(containerId) {
+  return [...document.querySelectorAll(`#${containerId} .check-item.checked`)]
+    .map(e => e.dataset.val);
+}
+
+// ═══════════════════════════════════════════════════════
+//  SELECTORES
+// ═══════════════════════════════════════════════════════
+async function ejecutarSelector(metodo) {
+  if (!S.target) { toast('Selecciona el target primero', 'warn'); return; }
+  try {
+    const label = {
+      correlacion:'Correlación Pearson', chi2:'Chi² / F-score',
+      random_forest:'Random Forest Gini', gower:'Gower Distance',
+      weka:'Weka InfoGain', todos:'Todos los Selectores'
+    }[metodo] || metodo;
+
+    const d = await api('/api/selector/' + metodo, {}, `Ejecutando ${label}...`);
+
+    const card  = document.getElementById('card-sel-result');
+    const title = document.getElementById('sel-result-title');
+    card.style.display = '';
+    title.textContent  = label;
+
+    // Tabla
+    const campo = d.resultados[0]?.SCORE_FINAL !== undefined ? 'SCORE_FINAL' : 'score';
+    const cols  = metodo === 'todos'
+      ? ['variable','Correlacion','Chi2_F','RandomForest','Gower','SCORE_FINAL']
+      : ['variable','score'];
+    const availCols = cols.filter(c => d.resultados[0]?.[c] !== undefined);
+
+    let html = `<table><thead><tr>${availCols.map(c=>`<th>${c}</th>`).join('')}</tr></thead><tbody>`;
+    d.resultados.forEach((r,i) => {
+      const highlight = i < 3 ? 'color:var(--success)' : i < 6 ? 'color:var(--blue-lit)' : '';
+      html += `<tr>${availCols.map(c => {
+        const v = r[c];
+        return `<td style="${typeof v==='number'?highlight:''}">${typeof v==='number'?v.toFixed(8):v}</td>`;
+      }).join('')}</tr>`;
+    });
+    html += '</tbody></table>';
+    document.getElementById('sel-result-table').innerHTML = html;
+
+    // Grafica
+    if (d.grafica) {
+      document.getElementById('sel-result-graph').innerHTML =
+        `<img src="${d.grafica}" alt="Gráfica ${label}">`;
+    }
+
+    // Stats card
+    const top3 = d.resultados.slice(0,3).map(r=>r.variable);
+    document.getElementById('card-sel-stats').style.display = '';
+    document.getElementById('sel-stats-content').innerHTML = `
+      <div style="font-size:11px;color:var(--muted);margin-bottom:8px">Top variables</div>
+      ${top3.map((v,i)=>`
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+          <span style="font-size:18px">${['🥇','🥈','🥉'][i]}</span>
+          <span style="font-family:var(--font-mono);font-size:12px;color:var(--white)">${v}</span>
+        </div>`).join('')}
+    `;
+
+    toast(`${label} completado — ${d.resultados.length} variables`, 'success');
+  } catch(e) {
+    toast(e.message, 'error', 'Error');
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+//  CLASIFICADORES
+// ═══════════════════════════════════════════════════════
+async function ejecutarClasificadores() {
+  if (!S.target) { toast('Selecciona el target primero', 'warn'); return; }
+  const metodos   = getChecked('clf-checks');
+  if (!metodos.length) { toast('Selecciona al menos un clasificador', 'warn'); return; }
+
+  try {
+    const d = await api('/api/clasificar', {
+      metodos,
+      test_size: parseFloat(document.getElementById('clf-test-size').value) / 100,
+      params: {
+        ibk: { k: parseInt(document.getElementById('clf-k').value) },
+        smo: { kernel: document.getElementById('clf-kernel').value },
+      }
+    }, 'Entrenando clasificadores...');
+
+    document.getElementById('clf-results').style.display = '';
+
+    // Tabla comparativa
+    const esCLF = d.es_clasificacion;
+    let html = `<table><thead><tr>
+      <th>Modelo</th>
+      ${esCLF ? '<th>Accuracy</th><th>F1 (weighted)</th>' : '<th>R²</th><th>MAE</th><th>RMSE</th>'}
+      <th>CV-5 mean</th><th>CV±std</th>
+    </tr></thead><tbody>`;
+
+    const mejor = d.resultados.reduce((a,b) => a.cv_mean > b.cv_mean ? a : b);
+    d.resultados.forEach(r => {
+      const isBest = r.modelo === mejor.modelo;
+      html += `<tr>
+        <td style="font-weight:700;color:${isBest?'var(--success)':'var(--white)'}">
+          ${isBest?'⭐ ':''}${r.modelo}
+        </td>
+        ${esCLF
+          ? `<td style="color:var(--blue-lit)">${r.accuracy.toFixed(8)}</td>
+             <td style="color:var(--teal)">${r.f1.toFixed(8)}</td>`
+          : `<td>${r.r2?.toFixed(8)}</td><td>${r.mae?.toFixed(8)}</td><td>${r.rmse?.toFixed(8)}</td>`}
+        <td style="color:var(--success)">${r.cv_mean.toFixed(8)}</td>
+        <td style="color:var(--muted)">±${r.cv_std.toFixed(8)}</td>
+      </tr>`;
+    });
+    html += '</tbody></table>';
+    document.getElementById('clf-table').innerHTML = html;
+
+    // Grafica comparativa - esto lo genera el backend solo para clasificación
+    if (d.graficas_cm && d.graficas_cm.length) {
+      // matrices de confusion
+      let mats = '';
+      d.resultados.forEach((r, i) => {
+        const g = d.graficas_cm[i];
+        if (!g) return;
+        mats += `
+          <div class="card">
+            <div class="card-title">Matriz de Confusión — ${r.modelo}</div>
+            <div class="grid-2">
+              <div class="grafica-wrap"><img src="${g}" alt="CM ${r.modelo}"></div>
+              <div>
+                <table><thead><tr><th>Clase</th><th>Precision</th><th>Recall</th><th>F1</th></tr></thead><tbody>
+                ${r.reporte ? Object.entries(r.reporte)
+                    .filter(([k,v]) => !['accuracy','macro avg','weighted avg'].includes(k) && typeof v === 'object')
+                    .map(([k,v]) => `<tr>
+                      <td>${k}</td>
+                      <td style="color:var(--blue-lit)">${(v.precision||0).toFixed(6)}</td>
+                      <td style="color:var(--teal)">${(v.recall||0).toFixed(6)}</td>
+                      <td style="color:var(--success)">${(v['f1-score']||0).toFixed(6)}</td>
+                    </tr>`).join('') : ''}
+                </tbody></table>
+              </div>
+            </div>
+          </div>`;
+      });
+      document.getElementById('clf-matrices').innerHTML = mats;
+    }
+
+    toast(`${metodos.length} clasificador(es) entrenados`, 'success', 'Completado');
+  } catch(e) {
+    toast(e.message, 'error', 'Error');
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+//  GOWER
+// ═══════════════════════════════════════════════════════
+async function calcularGower() {
+  if (!S.dataset) { toast('Carga un dataset primero', 'warn'); return; }
+  const maxI = parseInt(document.getElementById('gower-max').value);
+  try {
+    const d = await api('/api/gower_matriz', { max_instancias: maxI },
+                        'Calculando distancia Gower...');
+
+    document.getElementById('gower-results').style.display = '';
+
+    if (d.grafica) {
+      document.getElementById('gower-heatmap').innerHTML =
+        `<img src="${d.grafica}" alt="Heatmap Gower">`;
+    }
+
+    // Vecinos
+    let html = `<table><thead><tr>
+      <th>Instancia</th><th>Vecino más cercano</th><th>Similitud</th>
+    </tr></thead><tbody>`;
+    d.vecinos.slice(0,20).forEach(v => {
+      const pct = (v.similitud * 100).toFixed(2);
+      html += `<tr>
+        <td>I${v.instancia}</td>
+        <td style="color:var(--blue-lit)">I${v.vecino}</td>
+        <td>
+          <div class="score-bar">
+            <span class="score-num">${v.similitud.toFixed(8)}</span>
+            <div class="bar-wrap" style="width:80px">
+              <div class="bar-fill" style="width:${pct}%"></div>
+            </div>
+          </div>
+        </td>
+      </tr>`;
+    });
+    html += '</tbody></table>';
+    document.getElementById('gower-vecinos').innerHTML = html;
+
+    // Matriz primeras 10
+    const n   = Math.min(10, d.n);
+    const sim = d.similitud;
+    const et  = d.etiquetas.slice(0, n);
+    let mhtml = `<table><thead><tr><th></th>${et.map(e=>`<th>${e}</th>`).join('')}</tr></thead><tbody>`;
+    for (let i = 0; i < n; i++) {
+      mhtml += `<tr><th>${et[i]}</th>`;
+      for (let j = 0; j < n; j++) {
+        const v   = sim[i][j];
+        const col = i === j ? 'color:var(--muted)' :
+                    v > 0.8 ? 'color:var(--success)' :
+                    v > 0.5 ? 'color:var(--blue-lit)' : 'color:var(--muted)';
+        mhtml += `<td style="${col}">${v.toFixed(4)}</td>`;
+      }
+      mhtml += '</tr>';
+    }
+    mhtml += '</tbody></table>';
+    document.getElementById('gower-matrix-table').innerHTML = mhtml;
+
+    toast(`Matriz Gower calculada — ${d.n} instancias`, 'success');
+  } catch(e) {
+    toast(e.message, 'error', 'Error');
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+//  PREDICCIÓN
+// ═══════════════════════════════════════════════════════
+function buildPredInputs() {
+  if (!S.columnas.length || !S.target) return;
+  const features = S.columnas.filter(c => c.nombre !== S.target);
+  document.getElementById('pred-inputs').innerHTML = features.map(c => `
+    <div class="form-group">
+      <label>${c.nombre}</label>
+      <input type="text" id="pred-${c.nombre}" value="0"
+             placeholder="${c.tipo}">
+    </div>`).join('');
+}
+
+async function predecir() {
+  if (!S.target) { toast('Selecciona el target primero', 'warn'); return; }
+  const modelo   = document.getElementById('pred-modelo').value;
+  const testSize = parseFloat(document.getElementById('pred-test-size').value) / 100;
+  const features = S.columnas.filter(c => c.nombre !== S.target);
+  const instancia = {};
+  features.forEach(c => {
+    const el = document.getElementById(`pred-${c.nombre}`);
+    if (el) instancia[c.nombre] = el.value;
+  });
+  try {
+    const d = await api('/api/predecir', { modelo, test_size: testSize, instancia },
+                        'Prediciendo...');
+    document.getElementById('pred-result-wrap').style.display = '';
+    document.getElementById('pred-val').textContent  = d.prediccion;
+    document.getElementById('pred-lbl').textContent  = `clase predicha por ${d.modelo}`;
+
+    if (d.probabilidades) {
+      let html = '<div style="margin-top:8px"><div class="card-title" style="margin-bottom:8px">Probabilidades</div>';
+      Object.entries(d.probabilidades)
+        .sort((a,b) => b[1]-a[1])
+        .forEach(([cls, prob]) => {
+          html += `
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
+              <span style="font-family:var(--font-mono);font-size:11px;min-width:80px">${cls}</span>
+              <div class="bar-wrap" style="flex:1">
+                <div class="bar-fill" style="width:${(prob*100).toFixed(1)}%"></div>
+              </div>
+              <span style="font-family:var(--font-mono);font-size:11px;color:var(--blue-lit);min-width:60px">
+                ${(prob*100).toFixed(2)}%
+              </span>
+            </div>`;
+        });
+      html += '</div>';
+      document.getElementById('pred-probas').innerHTML = html;
+    }
+    toast(`Predicción: ${d.prediccion}`, 'success');
+  } catch(e) {
+    toast(e.message, 'error', 'Error');
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+//  EJECUTAR TODO
+// ═══════════════════════════════════════════════════════
+async function ejecutarTodo() {
+  if (!S.target) { toast('Selecciona el target primero', 'warn'); return; }
+  try {
+    const d = await api('/api/reporte_completo', {}, 'Ejecutando análisis completo...');
+
+    showPanel('reporte');
+    document.getElementById('reporte-placeholder').style.display = 'none';
+    document.getElementById('reporte-contenido').style.display = '';
+
+    let html = `
+      <!-- DATASET INFO -->
+      <div class="report-section">
+        <div class="report-h2">📂 Dataset</div>
+        <div class="stat-grid">
+          <div class="stat-box"><div class="stat-val">${d.dataset.filas}</div><div class="stat-lbl">Instancias</div></div>
+          <div class="stat-box"><div class="stat-val">${d.dataset.columnas}</div><div class="stat-lbl">Atributos</div></div>
+          <div class="stat-box"><div class="stat-val">${d.dataset.clases}</div><div class="stat-lbl">Clases</div></div>
+          <div class="stat-box"><div class="stat-val">${d.dataset.nulos}</div><div class="stat-lbl">Nulos</div></div>
+          <div class="stat-box"><div class="stat-val">${d.dataset.duplicados}</div><div class="stat-lbl">Duplicados</div></div>
+        </div>
+      </div>
+
+      <!-- TOP FEATURES -->
+      <div class="report-section">
+        <div class="report-h2">🎯 Top Variables Seleccionadas</div>
+        <div class="grid-2">
+          <div>
+            ${d.top_features.map((f,i) => `
+              <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+                <span style="font-size:20px">${['🥇','🥈','🥉','4️⃣','5️⃣'][i]||'·'}</span>
+                <span style="font-family:var(--font-mono);font-size:13px;color:var(--white)">${f}</span>
+              </div>`).join('')}
+          </div>
+          <div class="grafica-wrap">
+            <img src="${d.grafica_selectores}" alt="Selectores">
+          </div>
+        </div>
+      </div>
+
+      <!-- SELECTORES TABLE -->
+      <div class="report-section">
+        <div class="report-h2">📈 Score por Selector</div>
+        <div class="tbl-wrap">
+          <table><thead><tr>
+            <th>#</th><th>Variable</th>
+            <th>Correlacion</th><th>Chi2_F</th>
+            <th>RandomForest</th><th>Gower</th>
+            <th>SCORE FINAL</th>
+          </tr></thead><tbody>
+          ${d.selectores.map((r,i) => `
+            <tr>
+              <td style="color:var(--muted)">${i+1}</td>
+              <td style="font-weight:700;color:${i<3?'var(--success)':'var(--white)'}">${r.variable}</td>
+              <td>${(r.Correlacion||0).toFixed(6)}</td>
+              <td>${(r.Chi2_F||0).toFixed(6)}</td>
+              <td>${(r.RandomForest||0).toFixed(6)}</td>
+              <td>${(r.Gower||0).toFixed(6)}</td>
+              <td style="color:var(--blue-pri);font-weight:700">${(r.SCORE_FINAL||0).toFixed(6)}</td>
+            </tr>`).join('')}
+          </tbody></table>
+        </div>
+      </div>
+
+      <!-- CLASIFICADORES -->
+      <div class="report-section">
+        <div class="report-h2">🧠 Comparación de Clasificadores</div>
+        <div class="grid-2" style="margin-bottom:16px">
+          <div class="tbl-wrap">
+            <table><thead><tr>
+              <th>Modelo</th><th>Accuracy</th><th>F1</th>
+              <th>CV-5</th><th>±std</th>
+            </tr></thead><tbody>
+            ${d.clasificadores.map(r => `
+              <tr>
+                <td style="font-weight:700">${r.modelo}</td>
+                <td style="color:var(--blue-lit)">${r.accuracy.toFixed(6)}</td>
+                <td style="color:var(--teal)">${r.f1.toFixed(6)}</td>
+                <td style="color:var(--success)">${r.cv_mean.toFixed(6)}</td>
+                <td style="color:var(--muted)">±${r.cv_std.toFixed(6)}</td>
+              </tr>`).join('')}
+            </tbody></table>
+          </div>
+          <div class="grafica-wrap">
+            <img src="${d.grafica_comparacion}" alt="Comparación clasificadores">
+          </div>
+        </div>
+
+        <!-- matrices de confusion -->
+        <div class="grid-2">
+          ${d.graficas_cm.map((g,i) => `
+            <div>
+              <div style="font-size:11px;color:var(--muted);margin-bottom:6px;font-family:var(--font-mono)">
+                ${d.matrices[i]?.modelo || ''}
+              </div>
+              <div class="grafica-wrap"><img src="${g}" alt="CM"></div>
+            </div>`).join('')}
+        </div>
+      </div>
+    `;
+
+    document.getElementById('reporte-contenido').innerHTML = html;
+    toast('Reporte completo generado', 'success', '✅ Análisis completo');
+
+  } catch(e) {
+    toast(e.message, 'error', 'Error en reporte');
+  }
+}
+</script>
+</body>
+</html>
