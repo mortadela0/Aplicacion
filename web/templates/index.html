@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Selector de Variables — ML Studio v3</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Syne:wght@400;600;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/css/main.css">
+</head>
+<body>
+
+<div id="loading-overlay">
+  <div class="loading-spinner"></div>
+  <div class="loading-text" id="loading-text">Procesando...</div>
+</div>
+<div class="toast-container" id="toast-container"></div>
+
+<nav class="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-text">ML Studio</div>
+    <div class="logo-sub">v3.0 · Selector de Variables</div>
+  </div>
+  <div class="nav-section">
+    <div class="nav-label">Datos</div>
+    <a class="nav-item active" onclick="showPanel('dataset')" href="#">
+      <span class="nav-icon">📂</span> Dataset
+    </a>
+  </div>
+  <div class="nav-section">
+    <div class="nav-label">Selectores</div>
+    <a class="nav-item" onclick="showPanel('selectores')" href="#">
+      <span class="nav-icon">🎯</span> Feature Selection
+    </a>
+  </div>
+  <div class="nav-section">
+    <div class="nav-label">Clasificadores</div>
+    <a class="nav-item" onclick="showPanel('supervisado')" href="#">
+      <span class="nav-icon">🧠</span> Supervisados
+    </a>
+    <a class="nav-item" onclick="showPanel('nosupervisado')" href="#">
+      <span class="nav-icon">🔵</span> No Supervisados
+    </a>
+  </div>
+  <div class="sidebar-status">
+    <div class="status-row"><span class="dot" id="dot-dataset"></span><span id="status-dataset">Sin dataset</span></div>
+    <div class="status-row"><span class="dot" id="dot-target"></span><span id="status-target">Sin target</span></div>
+  </div>
+</nav>
+
+<main class="main">
+  <div class="topbar">
+    <span class="topbar-title" id="topbar-title">Dataset</span>
+    <span class="topbar-sub" id="topbar-sub">Carga tu CSV para comenzar</span>
+  </div>
+  <div class="content">
+
+    <!-- DATASET -->
+    <div class="panel active" id="panel-dataset">
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title">Cargar CSV</div>
+          <div class="upload-zone" id="upload-zone">
+            <input type="file" id="file-input" accept=".csv,.tsv,.txt">
+            <div style="font-size:40px;margin-bottom:12px">📁</div>
+            <div style="font-size:14px;color:var(--blue-lit);font-weight:600">Arrastra tu CSV aquí o haz clic</div>
+            <div style="font-size:11px;color:var(--muted);margin-top:6px">CSV, TSV — máx. 16 MB</div>
+          </div>
+          <div class="row" style="margin-top:14px">
+            <div class="form-group">
+              <label>Separador</label>
+              <select id="sep-select">
+                <option value=",">Coma (,)</option>
+                <option value=";">Punto y coma (;)</option>
+                <option value="tab">Tabulador</option>
+              </select>
+            </div>
+            <button class="btn btn-primary" onclick="cargarCSV()">↑ Cargar</button>
+          </div>
+        </div>
+        <div class="card" id="card-info" style="display:none">
+          <div class="card-title">Info del Dataset</div>
+          <div class="stat-grid" id="stat-grid"></div>
+          <div class="card-title" style="margin-top:12px">Seleccionar Target</div>
+          <div class="col-selector-list" id="col-selector-list"></div>
+        </div>
+      </div>
+      <div class="card" id="card-preview" style="display:none">
+        <div class="card-title">Vista Previa — 5 filas</div>
+        <div class="tbl-wrap" id="preview-table"></div>
+      </div>
+    </div>
+
+    <!-- SELECTORES -->
+    <div class="panel" id="panel-selectores">
+      <div class="card">
+        <div class="card-title">Método individual</div>
+        <div class="row">
+          <div class="form-group">
+            <label>Selector</label>
+            <select id="sel-metodo">
+              <option value="correlacion">Correlación de Pearson</option>
+              <option value="chi2">Chi² / F-score</option>
+              <option value="random_forest">Random Forest Gini</option>
+              <option value="gower">Gower Distance</option>
+            </select>
+          </div>
+          <button class="btn btn-secondary" onclick="ejecutarSelector(document.getElementById('sel-metodo').value)">▶ Ejecutar</button>
+          <button class="btn btn-primary" onclick="ejecutarSelector('todos')">▶ Todos</button>
+        </div>
+      </div>
+      <div class="card" id="card-sel-result" style="display:none">
+        <div class="card-title" id="sel-result-title">Resultado</div>
+        <div class="grid-2">
+          <div class="tbl-wrap" id="sel-result-table"></div>
+          <div class="grafica-wrap" id="sel-result-graph"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SUPERVISADOS -->
+    <div class="panel" id="panel-supervisado">
+      <div class="card">
+        <div class="card-title">Clasificadores Supervisados</div>
+        <div class="check-group" id="clf-sup-checks" style="margin-bottom:16px">
+          <div class="check-item checked" data-val="j48" onclick="toggleCheck(this)"><input type="checkbox" checked> J48</div>
+          <div class="check-item checked" data-val="naive_bayes" onclick="toggleCheck(this)"><input type="checkbox" checked> Naive Bayes</div>
+          <div class="check-item checked" data-val="ibk" onclick="toggleCheck(this)"><input type="checkbox" checked> IBk (KNN)</div>
+          <div class="check-item checked" data-val="svm" onclick="toggleCheck(this)"><input type="checkbox" checked> SVM</div>
+          <div class="check-item checked" data-val="sgd" onclick="toggleCheck(this)"><input type="checkbox" checked> SGD</div>
+        </div>
+        <div class="row">
+          <div class="form-group">
+            <label>% Test split</label>
+            <input type="number" id="supervisado-test-size" value="20" min="10" max="40">
+          </div>
+          <button class="btn btn-primary" onclick="ejecutarClasificadores('supervisado')">▶ Entrenar</button>
+        </div>
+      </div>
+      <div id="supervisado-results" style="display:none">
+        <div class="card">
+          <div class="card-title">Resultados</div>
+          <div class="tbl-wrap" id="supervisado-table"></div>
+        </div>
+        <div class="card">
+          <div class="card-title">Comparativa</div>
+          <div class="grafica-wrap" id="supervisado-graph"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- NO SUPERVISADOS -->
+    <div class="panel" id="panel-nosupervisado">
+      <div class="card">
+        <div class="card-title">Clasificadores No Supervisados</div>
+        <div class="check-group" id="clf-nosup-checks" style="margin-bottom:16px">
+          <div class="check-item checked" data-val="hierarchical" onclick="toggleCheck(this)"><input type="checkbox" checked> Hierarchical</div>
+          <div class="check-item checked" data-val="kmeans" onclick="toggleCheck(this)"><input type="checkbox" checked> KMeans</div>
+          <div class="check-item checked" data-val="dbscan" onclick="toggleCheck(this)"><input type="checkbox" checked> DBSCAN</div>
+          <div class="check-item checked" data-val="gmm" onclick="toggleCheck(this)"><input type="checkbox" checked> GMM</div>
+          <div class="check-item checked" data-val="kmedoids" onclick="toggleCheck(this)"><input type="checkbox" checked> KMedoids</div>
+        </div>
+        <div class="row">
+          <div class="form-group">
+            <label>% Test split</label>
+            <input type="number" id="nosupervisado-test-size" value="20" min="10" max="40">
+          </div>
+          <button class="btn btn-primary" onclick="ejecutarClasificadores('nosupervisado')">▶ Entrenar</button>
+        </div>
+      </div>
+      <div id="nosupervisado-results" style="display:none">
+        <div class="card">
+          <div class="card-title">Resultados</div>
+          <div class="tbl-wrap" id="nosupervisado-table"></div>
+        </div>
+        <div class="card">
+          <div class="card-title">Comparativa</div>
+          <div class="grafica-wrap" id="nosupervisado-graph"></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</main>
+
+<script src="/static/js/app.js"></script>
+</body>
+</html>
