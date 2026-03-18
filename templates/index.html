@@ -1,0 +1,823 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>ML Studio v3</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Arial,sans-serif;background:#f0f2f5;color:#1a1a1a;font-size:13px}
+.top{background:#1a237e;color:#fff;padding:10px 18px;font-size:15px;font-weight:bold;display:flex;align-items:center;gap:10px}
+.top .sub{font-size:11px;opacity:.65;font-weight:normal}
+#sbar{padding:4px 18px;font-size:11px;background:#fff3e0;color:#e65100;border-bottom:1px solid #ffe0b2}
+.layout{display:flex;height:calc(100vh - 54px)}
+.sidebar{width:170px;background:#fff;border-right:1px solid #ddd;overflow-y:auto;flex-shrink:0}
+.sidebar a{display:block;padding:8px 14px;color:#444;text-decoration:none;cursor:pointer;border-left:3px solid transparent;font-size:12px}
+.sidebar a:hover{background:#f5f5f5;color:#1a237e}
+.sidebar a.active{background:#e8eaf6;color:#1a237e;border-left-color:#1a237e;font-weight:bold}
+.sep{padding:8px 14px 2px;font-size:10px;color:#999;text-transform:uppercase;letter-spacing:.08em}
+.main{flex:1;overflow-y:auto;padding:14px}
+.panel{display:none}.panel.active{display:block}
+.card{background:#fff;border:1px solid #ddd;border-radius:5px;padding:14px;margin-bottom:12px}
+h3{font-size:12px;font-weight:bold;color:#1a237e;margin-bottom:10px;text-transform:uppercase;letter-spacing:.05em}
+.row{display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap;margin-bottom:8px}
+.fg{flex:1;min-width:130px}
+label{display:block;font-size:11px;color:#555;margin-bottom:3px}
+input,select{width:100%;padding:6px 8px;border:1px solid #ccc;border-radius:3px;font-size:12px;font-family:Arial}
+input:focus,select:focus{border-color:#1a237e;outline:none}
+.btn{padding:7px 14px;border:none;border-radius:3px;font-size:11px;font-weight:bold;cursor:pointer;text-transform:uppercase;letter-spacing:.04em}
+.btn-blue{background:#1a237e;color:#fff}.btn-blue:hover{background:#283593}
+.btn-gray{background:#e0e0e0;color:#333}.btn-gray:hover{background:#bdbdbd}
+.btn-red{background:#c62828;color:#fff}.btn-red:hover{background:#b71c1c}
+.btn-grn{background:#2e7d32;color:#fff}.btn-grn:hover{background:#1b5e20}
+table{width:100%;border-collapse:collapse;font-size:11px}
+th{background:#e8eaf6;color:#1a237e;padding:6px 8px;text-align:left;font-size:10px;text-transform:uppercase;white-space:nowrap}
+td{padding:5px 8px;border-bottom:1px solid #eee}
+tr:hover td{background:#f9f9f9}
+.hi{color:#2e7d32;font-weight:bold}.mid{color:#f57f17}.lo{color:#c62828}
+.badge{display:inline-block;padding:2px 7px;border-radius:10px;font-size:10px;font-weight:bold}
+.bgrn{background:#e8f5e9;color:#2e7d32}.bblue{background:#e3f2fd;color:#1565c0}
+.bred{background:#ffebee;color:#c62828}.byel{background:#fffde7;color:#f57f17}
+.chk-group{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px}
+.chk-item{padding:5px 10px;border:1px solid #ccc;border-radius:3px;cursor:pointer;font-size:11px;user-select:none}
+.chk-item.on{background:#e8eaf6;border-color:#1a237e;color:#1a237e;font-weight:bold}
+.pgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:6px;margin:8px 0}
+.info{padding:7px 10px;border-radius:3px;font-size:11px;margin-bottom:8px}
+.iok{background:#e8f5e9;color:#2e7d32;border:1px solid #a5d6a7}
+.iwarn{background:#fffde7;color:#f57f17;border:1px solid #fff176}
+.iblue{background:#e3f2fd;color:#1565c0;border:1px solid #90caf9}
+.stat-row{display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap}
+.stat-box{background:#e8eaf6;border-radius:4px;padding:8px 12px;text-align:center;min-width:70px}
+.stat-num{font-size:18px;font-weight:bold;color:#1a237e}
+.stat-lbl{font-size:10px;color:#666;text-transform:uppercase}
+.col-list{max-height:200px;overflow-y:auto;border:1px solid #ddd;border-radius:3px}
+.col-item{display:flex;align-items:center;padding:6px 10px;cursor:pointer;border-bottom:1px solid #eee;gap:6px;font-size:12px}
+.col-item:hover{background:#f5f5f5}.col-item.sel{background:#e8eaf6;font-weight:bold}
+.bar{height:7px;background:#e0e0e0;border-radius:3px;overflow:hidden;flex:1}
+.bar-fill{height:100%;background:#1a237e;border-radius:3px}
+.pred-big{font-size:42px;font-weight:bold;text-align:center;padding:16px;color:#1a237e;font-family:monospace}
+.tbl-wrap{overflow-x:auto}
+.toast-wrap{position:fixed;bottom:14px;right:14px;z-index:999;display:flex;flex-direction:column;gap:5px}
+.toast{padding:9px 14px;border-radius:3px;font-size:11px;color:#fff;max-width:280px;animation:fu .2s ease}
+.tok{background:#2e7d32}.terr{background:#c62828}.twarn{background:#e65100}
+@keyframes fu{from{opacity:0;transform:translateY(8px)}to{opacity:1}}
+</style>
+</head>
+<body>
+<div class="top">ML Studio v3 <span class="sub" id="top-info">Sin dataset</span></div>
+<div id="sbar">Carga un CSV para comenzar</div>
+<div class="toast-wrap" id="toasts"></div>
+
+<div class="layout">
+<nav class="sidebar">
+  <div class="sep">Datos</div>
+  <a onclick="go('dataset')" id="nav-dataset" class="active">📂 Dataset</a>
+  <div class="sep">Selectores</div>
+  <a onclick="go('pearson')"   id="nav-pearson">📈 Pearson</a>
+  <a onclick="go('chi2')"      id="nav-chi2">χ² Chi-Square</a>
+  <a onclick="go('rf')"        id="nav-rf">🌲 Random Forest</a>
+  <a onclick="go('gower')"     id="nav-gower">🔵 Gower</a>
+  <a onclick="go('relief')"    id="nav-relief">🎯 ReliefF</a>
+  <a onclick="go('gainratio')" id="nav-gainratio">📐 Gain Ratio</a>
+  <a onclick="go('todos')"     id="nav-todos">⭐ Comparar Todo</a>
+  <div class="sep">Clasificadores</div>
+  <a onclick="go('sup')"   id="nav-sup">🧠 Supervisados</a>
+  <a onclick="go('nosup')" id="nav-nosup">🔵 No Supervisados</a>
+  <div class="sep">Análisis</div>
+  <a onclick="go('results')"    id="nav-results">📊 Results</a>
+  <a onclick="go('pred')"       id="nav-pred">🔮 Predicción</a>
+</nav>
+
+<div class="main">
+
+<!-- ═══ DATASET ═══ -->
+<div class="panel active" id="panel-dataset">
+  <div class="card"><h3>Cargar CSV</h3>
+    <div class="row">
+      <div class="fg"><label>Archivo CSV</label><input type="file" id="fi" accept=".csv,.tsv"></div>
+      <div class="fg" style="max-width:140px"><label>Separador</label>
+        <select id="sep"><option value=",">Coma (,)</option><option value=";">Punto y coma</option><option value="tab">Tab</option></select>
+      </div>
+      <button class="btn btn-blue" onclick="cargar()">Cargar</button>
+    </div>
+  </div>
+  <div id="ds-info" style="display:none">
+    <div class="card"><h3>Dataset</h3>
+      <div class="stat-row" id="ds-stats"></div>
+      <div class="row">
+        <div class="fg"><label>Seleccionar Target (clase)</label><div class="col-list" id="col-list"></div></div>
+        <div class="fg"><label>Vista previa</label><div class="tbl-wrap" id="preview" style="max-height:140px;overflow-y:auto;font-size:10px"></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ SELECTORES SIMPLES ═══ -->
+<div class="panel" id="panel-pearson">
+  <div class="card"><h3>Correlación de Pearson |r|</h3>
+    <p style="font-size:11px;color:#555;margin-bottom:8px">Relación lineal con el target. Detecta variables numéricas correlacionadas.</p>
+    <button class="btn btn-blue" onclick="runSel('correlacion','Pearson |r|','rp')">▶ Ejecutar</button>
+  </div><div id="rp"></div>
+</div>
+<div class="panel" id="panel-chi2">
+  <div class="card"><h3>Chi² / F-score</h3>
+    <p style="font-size:11px;color:#555;margin-bottom:8px">Significancia estadística. Funciona con cualquier tipo de dato.</p>
+    <button class="btn btn-blue" onclick="runSel('chi2','Chi²','rc')">▶ Ejecutar</button>
+  </div><div id="rc"></div>
+</div>
+<div class="panel" id="panel-rf">
+  <div class="card"><h3>Random Forest — Gini</h3>
+    <p style="font-size:11px;color:#555;margin-bottom:8px">Importancia Gini de 150 árboles. Captura relaciones no lineales.</p>
+    <button class="btn btn-blue" onclick="runSel('random_forest','RF Gini','rr')">▶ Ejecutar</button>
+  </div><div id="rr"></div>
+</div>
+<div class="panel" id="panel-relief">
+  <div class="card"><h3>ReliefF — nativo Python</h3>
+    <p style="font-size:11px;color:#555;margin-bottom:8px">Basado en vecinos. Detecta interacciones entre variables. Sin Java.</p>
+    <div class="row">
+      <div class="fg" style="max-width:140px"><label>K vecinos</label><input type="number" id="rk" value="10" min="3" max="30"></div>
+      <button class="btn btn-blue" onclick="runSelP('relief','ReliefF','rrel',{n_neighbors:+Q('rk').value})">▶ Ejecutar</button>
+    </div>
+  </div><div id="rrel"></div>
+</div>
+<div class="panel" id="panel-gainratio">
+  <div class="card"><h3>Gain Ratio — nativo Python</h3>
+    <p style="font-size:11px;color:#555;margin-bottom:8px">InfoGain/SplitInfo. Justo con variables de muchos valores. Sin Java.</p>
+    <div class="row">
+      <div class="fg" style="max-width:140px"><label>Bins</label><input type="number" id="gb" value="10" min="5" max="30"></div>
+      <button class="btn btn-blue" onclick="runSelP('gain_ratio','Gain Ratio','rgr',{n_bins:+Q('gb').value})">▶ Ejecutar</button>
+    </div>
+  </div><div id="rgr"></div>
+</div>
+
+<!-- ═══ GOWER ═══ -->
+<div class="panel" id="panel-gower">
+  <div class="card"><h3>Gower — Distancia & Similitud</h3>
+    <p style="font-size:11px;color:#555;margin-bottom:8px">Datos mixtos. Matriz de similitud + vecino más cercano ★ + pesos por variable.</p>
+    <div class="row">
+      <div class="fg" style="max-width:140px"><label>Máx instancias matriz</label><input type="number" id="gmx" value="20" min="5" max="30"></div>
+      <button class="btn btn-gray" onclick="showGPesos()">⚖ Pesos</button>
+      <button class="btn btn-blue" onclick="runGower()">▶ Ejecutar</button>
+    </div>
+    <div id="gp" style="display:none;margin-top:8px"></div>
+  </div><div id="rg"></div>
+</div>
+
+<!-- ═══ TODOS ═══ -->
+<div class="panel" id="panel-todos">
+  <div class="card"><h3>Comparar Todos los Selectores</h3>
+    <p style="font-size:11px;color:#555;margin-bottom:8px">Pearson + Chi² + RF + Gower + ReliefF + Gain Ratio → SCORE_FINAL + acuerdo entre 6 métodos.</p>
+    <button class="btn btn-blue" onclick="runTodos()">▶ Ejecutar los 6</button>
+  </div><div id="rt"></div>
+</div>
+
+<!-- ═══ SUPERVISADOS ═══ -->
+<div class="panel" id="panel-sup">
+  <div class="card"><h3>Clasificadores Supervisados</h3>
+    <div class="chk-group" id="chk-sup">
+      <div class="chk-item on" data-v="j48" onclick="tog(this)">J48</div>
+      <div class="chk-item on" data-v="naive_bayes" onclick="tog(this)">Naive Bayes</div>
+      <div class="chk-item on" data-v="ibk" onclick="tog(this)">IBk KNN</div>
+      <div class="chk-item on" data-v="svm" onclick="tog(this)">SVM</div>
+      <div class="chk-item on" data-v="sgd" onclick="tog(this)">SGD</div>
+    </div>
+    <div id="ps" class="pgrid"></div>
+    <div class="row">
+      <div class="fg" style="max-width:120px"><label>% Test</label><input type="number" id="st" value="20" min="10" max="40"></div>
+      <button class="btn btn-gray" onclick="togParams('sup','ps')">⚙ Parámetros</button>
+      <button class="btn btn-blue" onclick="runClf('supervisado','sup','ps','rs')">▶ Entrenar</button>
+    </div>
+  </div><div id="rs"></div>
+</div>
+
+<!-- ═══ NO SUPERVISADOS ═══ -->
+<div class="panel" id="panel-nosup">
+  <div class="card"><h3>Clasificadores No Supervisados</h3>
+    <p style="font-size:11px;color:#555;margin-bottom:6px">Agrupan por similitud sin usar etiquetas.</p>
+    <div class="chk-group" id="chk-nosup">
+      <div class="chk-item on" data-v="hierarchical" onclick="tog(this)">Hierarchical</div>
+      <div class="chk-item on" data-v="kmeans" onclick="tog(this)">KMeans</div>
+      <div class="chk-item on" data-v="dbscan" onclick="tog(this)">DBSCAN</div>
+      <div class="chk-item on" data-v="gmm" onclick="tog(this)">GMM</div>
+      <div class="chk-item on" data-v="kmedoids" onclick="tog(this)">KMedoids</div>
+    </div>
+    <div id="pn" class="pgrid"></div>
+    <div class="row">
+      <div class="fg" style="max-width:120px"><label>% Test</label><input type="number" id="nt" value="20" min="10" max="40"></div>
+      <button class="btn btn-gray" onclick="togParams('nosup','pn')">⚙ Parámetros</button>
+      <button class="btn btn-blue" onclick="runClf('nosupervisado','nosup','pn','rn')">▶ Entrenar</button>
+    </div>
+  </div><div id="rn"></div>
+</div>
+
+<!-- ═══ RESULTS ═══ -->
+<div class="panel" id="panel-results">
+  <div class="card"><h3>Results — Sesión actual</h3>
+    <button class="btn btn-gray" onclick="loadResults()" style="margin-bottom:10px">↻ Actualizar</button>
+    <div id="rm"></div>
+  </div>
+  <div id="rsc" style="display:none" class="card"><h3>SCORE_FINAL por variable</h3><div id="rst"></div></div>
+  <div id="rcc" style="display:none" class="card"><h3>Efectividad de clasificadores</h3><div id="rct"></div></div>
+</div>
+
+<!-- ═══ PREDICCIÓN ═══ -->
+<div class="panel" id="panel-pred">
+  <div class="card"><h3>Predicción</h3>
+    <div class="row">
+      <div class="fg" style="max-width:190px"><label>Modo</label>
+        <select id="pmodo" onchange="switchModo()">
+          <option value="manual">Manual (ingresar valores)</option>
+          <option value="muestra">Muestra aleatoria del dataset</option>
+          <option value="csv">CSV externo</option>
+        </select>
+      </div>
+      <div class="fg" style="max-width:160px"><label>Modelo</label><select id="pmod"></select></div>
+    </div>
+    <div id="m-manual">
+      <label style="margin-bottom:5px">Valores de la instancia nueva</label>
+      <div id="pcampos" class="pgrid" style="margin-top:6px"></div>
+    </div>
+    <div id="m-muestra" style="display:none">
+      <div class="row">
+        <div class="fg" style="max-width:160px"><label>N instancias</label><input type="number" id="pn" value="20" min="1" max="9999"></div>
+      </div>
+      <div class="info iblue" style="margin-top:6px;font-size:11px">
+        ℹ Las instancias se toman del dataset <b>excluyendo las usadas en entrenamiento</b>.<br>
+        Si no se ha entrenado aún, se usa todo el dataset. Sin límite de cantidad.
+      </div>
+    </div>
+    <div id="m-csv" style="display:none">
+      <div class="row">
+        <div class="fg"><label>Archivo CSV</label><input type="file" id="pfi" accept=".csv"></div>
+        <div class="fg" style="max-width:130px"><label>Separador</label>
+          <select id="psep"><option value=",">Coma</option><option value=";">Punto y coma</option><option value="tab">Tab</option></select>
+        </div>
+      </div>
+    </div>
+    <div style="margin-top:10px"><button class="btn btn-blue" onclick="predecir()">🔮 Predecir</button></div>
+  </div>
+
+  <div id="pred-out" style="display:none">
+    <!-- Métricas -->
+    <div id="pm-card" style="display:none" class="card">
+      <h3>Métricas de evaluación</h3>
+      <div class="stat-row" id="pm-stats"></div>
+      <div class="tbl-wrap" id="pm-abc" style="margin-top:8px"></div>
+    </div>
+    <!-- Confusion matrix -->
+    <div id="pcm-card" style="display:none" class="card">
+      <h3>Confusion Matrix</h3>
+      <div id="pcm-img"></div>
+    </div>
+    <!-- Resultado simple manual -->
+    <div id="psingle" style="display:none" class="card">
+      <h3>Resultado</h3>
+      <div class="pred-big" id="pval">—</div>
+      <div id="pprobas"></div>
+    </div>
+    <!-- Tabla -->
+    <div class="card">
+      <h3>Tabla de predicciones <span id="pmod-lbl" style="font-weight:normal;color:#666;text-transform:none"></span></h3>
+      <div class="tbl-wrap" id="ptbl"></div>
+    </div>
+  </div>
+</div>
+
+</div></div><!-- /main /layout -->
+
+<script>
+// ══════════════════════════════════════════════
+// HELPERS
+// ══════════════════════════════════════════════
+const S={target:null,cols:[],modelosDisp:[]};
+const PD={
+  j48:         [{k:'max_depth',  lbl:'Max depth',    v:'',    ph:'sin límite'}],
+  ibk:         [{k:'k',         lbl:'K vecinos',     v:'3',   ph:'3'}],
+  svm:         [{k:'kernel',    lbl:'Kernel',        v:'rbf', ph:'rbf/linear/poly'},
+                {k:'C',         lbl:'C',             v:'1.0', ph:'1.0'}],
+  sgd:         [{k:'loss',      lbl:'Loss',          v:'modified_huber',ph:'modified_huber'}],
+  dbscan:      [{k:'eps',       lbl:'Eps',           v:'0.5', ph:'0.5'},
+                {k:'min_samples',lbl:'Min samples',  v:'5',   ph:'5'}],
+  hierarchical:[{k:'linkage',   lbl:'Linkage',       v:'ward',ph:'ward/complete/average'}],
+  kmeans:      [{k:'n_clusters',lbl:'N clusters',    v:'',    ph:'auto'}],
+  gmm:         [{k:'n_components',lbl:'N components',v:'',   ph:'auto'},
+                {k:'covariance_type',lbl:'Covariance',v:'full',ph:'full/tied/diag'}],
+  kmedoids:    [{k:'n_clusters',lbl:'N clusters',    v:'',    ph:'auto'},
+                {k:'metric',    lbl:'Metric',        v:'euclidean',ph:'euclidean/cosine'}],
+};
+let _pVis={},_pesosG={},_lastSel=null;
+
+function Q(i){return document.getElementById(i)}
+function tog(el){el.classList.toggle('on')}
+function chkd(id){return[...document.querySelectorAll('#'+id+' .chk-item.on')].map(e=>e.dataset.v)}
+function toast(msg,t='ok'){const d=document.createElement('div');d.className='toast t'+t;d.textContent=msg;Q('toasts').appendChild(d);setTimeout(()=>d.remove(),3500)}
+function setS(msg){Q('sbar').textContent=msg}
+function load(b,msg){setS(b?'⏳ '+msg:'Listo')}
+
+async function api(url,body,msg){
+  load(true,msg||'...');
+  try{
+    const iF=body instanceof FormData;
+    const r=await fetch(url,{method:'POST',body:iF?body:JSON.stringify(body),headers:iF?{}:{'Content-Type':'application/json'}});
+    const d=await r.json();load(false);
+    if(d.error)throw new Error(d.error);
+    return d;
+  }catch(e){load(false);throw e;}
+}
+
+// ══════════════════════════════════════════════
+// NAV
+// ══════════════════════════════════════════════
+function go(p){
+  document.querySelectorAll('.panel').forEach(x=>x.classList.remove('active'));
+  document.querySelectorAll('.sidebar a').forEach(x=>x.classList.remove('active'));
+  Q('panel-'+p).classList.add('active');
+  Q('nav-'+p).classList.add('active');
+  if(p==='results')loadResults();
+  if(p==='pred'){buildPredCampos();loadPredMods();}
+}
+
+// ══════════════════════════════════════════════
+// CARGAR CSV
+// ══════════════════════════════════════════════
+async function cargar(){
+  const fi=Q('fi'),sep=Q('sep').value;
+  if(!fi.files.length){toast('Selecciona un archivo','warn');return;}
+  const fd=new FormData();fd.append('archivo',fi.files[0]);fd.append('separador',sep);
+  try{
+    const d=await api('/api/cargar',fd,'Cargando...');
+    S.cols=d.columnas;S.target=null;
+    Q('ds-info').style.display='';
+    Q('ds-stats').innerHTML=`<div class="stat-box"><div class="stat-num">${d.filas}</div><div class="stat-lbl">Filas</div></div><div class="stat-box"><div class="stat-num">${d.columnas_count}</div><div class="stat-lbl">Columnas</div></div>`;
+    Q('col-list').innerHTML=d.columnas.map(c=>{
+    const ico=c.icono==='✓'?'🔤':c.icono==='~'?'🔢':'📊';
+    const nulos=c.nulos>0?'<span style="font-size:10px;color:#c62828">'+c.nulos+'N</span>':'';
+    return '<div class="col-item" onclick="setTgt(\''+c.nombre+'\',this)">'
+      +'<span>'+ico+'</span>'
+      +'<span style="flex:1">'+c.nombre+'</span>'
+      +'<span style="font-size:10px;color:#999">'+c.tipo+'</span>'
+      +nulos+'</div>';
+  }).join('');
+    const ths=d.headers.map(h=>`<th>${h}</th>`).join('');
+    const trs=d.preview.map(row=>'<tr>'+d.headers.map(h=>`<td>${row[h]??''}</td>`).join('')+'</tr>').join('');
+    Q('preview').innerHTML=`<table><thead><tr>${ths}</tr></thead><tbody>${trs}</tbody></table>`;
+    Q('top-info').textContent=`${d.nombre} — ${d.filas}×${d.columnas_count}`;
+    toast('Dataset cargado','ok');
+  }catch(e){toast(e.message,'err');}
+}
+
+async function setTgt(col,el){
+  document.querySelectorAll('.col-item').forEach(e=>e.classList.remove('sel'));el.classList.add('sel');
+  try{
+    const d=await api('/api/set_target',{columna:col},'...');
+    S.target=col;
+    setS(`Target: ${col} — ${d.n_clases} clases: ${d.muestra.slice(0,5).join(', ')}`);
+    toast(`Target: ${col}`,'ok');
+    buildPredCampos();
+  }catch(e){toast(e.message,'err');}
+}
+
+// ══════════════════════════════════════════════
+// SELECTORES
+// ══════════════════════════════════════════════
+async function runSel(met,tit,rid){
+  if(!S.target){toast('Selecciona el target primero','warn');return;}
+  _lastSel={fn:'runSel',met,tit,rid,params:null};
+  try{
+    const d=await api('/api/selector/'+met,{},`Ejecutando ${tit}...`);
+    Q(rid).innerHTML=renderRanking(d,tit)+renderElim(d.eliminacion,met);
+    toast(tit+' completado','ok');
+  }catch(e){toast(e.message,'err');}
+}
+
+async function runSelP(met,tit,rid,params){
+  if(!S.target){toast('Selecciona el target primero','warn');return;}
+  _lastSel={fn:'runSelP',met,tit,rid,params};
+  try{
+    const d=await api('/api/selector/'+met,params,`Ejecutando ${tit}...`);
+    Q(rid).innerHTML=renderRanking(d,tit)+renderElim(d.eliminacion,met);
+    toast(tit+' completado','ok');
+  }catch(e){toast(e.message,'err');}
+}
+
+function renderRanking(d,tit){
+  const campo=d.resultados[0]?.SCORE_FINAL!==undefined?'SCORE_FINAL':'score';
+  const max=Math.max(...d.resultados.map(r=>r[campo]||0))||1;
+  let h=`<div class="card"><h3>${tit} — Ranking de variables</h3><table><thead><tr><th>#</th><th>Variable</th><th>Score</th><th>Merit%</th><th>Importancia</th><th>Estado</th></tr></thead><tbody>`;
+  d.resultados.forEach((r,i)=>{
+    const v=r[campo]||r.score||0,pct=(v/max*100).toFixed(1);
+    const cls=i<5?'hi':v/max>0.3?'mid':'lo';
+    const est=i<5?'<span class="badge bgrn">TOP 5</span>':v/max<0.25?'<span class="badge bred">Baja</span>':'<span class="badge byel">Opcional</span>';
+    h+=`<tr><td>${i+1}</td><td><b>${r.variable}</b></td><td class="${cls}">${v.toFixed(6)}</td><td>${pct}%</td><td><div style="display:flex;align-items:center;gap:6px"><div class="bar"><div class="bar-fill" style="width:${pct}%"></div></div></div></td><td>${est}</td></tr>`;
+  });
+  h+=`</tbody></table></div>`;
+  if(d.grafica)h+=`<div class="card"><img src="${d.grafica}" style="max-width:100%;border-radius:3px"></div>`;
+  return h;
+}
+
+function renderElim(elim,met){
+  if(!elim||!elim.ranking)return '';
+  const cand=elim.candidatas||[],top5=elim.top5||[];
+  const nMet=elim.n_metodos||1;
+  let h=`<div class="card"><h3>Gestión de variables — ${met}</h3>`;
+  h+=`<div class="info iblue"><b>🟢 Top 5 más importantes:</b> ${top5.join(', ')||'—'}<br><b>🔴 Candidatas a eliminar (${cand.length}):</b> ${cand.join(', ')||'ninguna'}</div>`;
+
+  // Tabla con acuerdo entre métodos
+  const tieneVotos=elim.ranking[0]?.votos_eliminar!==undefined;
+  if(tieneVotos){
+    h+=`<table style="margin-bottom:10px"><thead><tr><th>Variable</th><th>SCORE_FINAL</th><th>Votos eliminar</th><th>% acuerdo</th><th>Estado</th></tr></thead><tbody>`;
+    elim.ranking.forEach(r=>{
+      const barra=`<div style="display:flex;align-items:center;gap:5px"><div class="bar" style="width:80px"><div class="bar-fill" style="width:${r.pct_acuerdo}%;background:${r.pct_acuerdo>60?'#c62828':'#1a237e'}"></div></div><span>${r.pct_acuerdo}%</span></div>`;
+      const est=r.top5?'<span class="badge bgrn">TOP 5</span>':r.recomendada?`<span class="badge bred">Eliminar (${r.votos_eliminar}/${r.total_metodos})</span>`:'<span class="badge byel">Opcional</span>';
+      h+=`<tr><td><b>${r.variable}</b></td><td class="${r.score_final>0.7?'hi':r.score_final>0.3?'mid':'lo'}">${r.score_final.toFixed(4)}</td><td style="text-align:center">${r.votos_eliminar}/${r.total_metodos}</td><td>${barra}</td><td>${est}</td></tr>`;
+    });
+    h+=`</tbody></table>`;
+  } else {
+    h+=`<table style="margin-bottom:10px"><thead><tr><th>Variable</th><th>Score</th><th>Merit%</th><th>Estado</th></tr></thead><tbody>`;
+    elim.ranking.forEach(r=>{
+      const est=r.top5?'<span class="badge bgrn">TOP 5</span>':r.recomendada?'<span class="badge bred">Eliminar</span>':'';
+      h+=`<tr><td><b>${r.variable}</b></td><td class="${r.score_final>0.7?'hi':r.score_final>0.3?'mid':'lo'}">${r.score_final.toFixed(4)}</td><td>${r.pct_merit||0}%</td><td>${est}</td></tr>`;
+    });
+    h+=`</tbody></table>`;
+  }
+
+  // Botones de acción
+  const candB64 = btoa(unescape(encodeURIComponent(JSON.stringify(cand))));
+  h+=`<div class="row" style="gap:6px;flex-wrap:wrap">
+    <button class="btn btn-red" data-cand="${candB64}" onclick="elimRecomBtn(this)">🗑 Eliminar recomendadas (${cand.length})</button>
+    <button class="btn btn-gray" data-cand="${candB64}" onclick="abrirManual(this)">✏ Eliminar manualmente</button>
+  </div>
+  <div class="elim-manual" style="display:none;margin-top:8px">
+    <label style="margin-bottom:5px">Selecciona variables a eliminar:</label>
+    <div class="elim-chks chk-group" style="margin-top:4px">${S.cols.filter(c=>c.nombre!==S.target).map(c=>'<div class="chk-item" data-v="'+c.nombre+'" onclick="tog(this)">'+c.nombre+'</div>').join('')}</div>
+    <button class="btn btn-red" style="margin-top:6px" onclick="elimManual(this)">🗑 Eliminar seleccionadas</button>
+  </div></div>`;
+  return h;
+}
+
+function _parseCand(btn){
+  try{ return JSON.parse(decodeURIComponent(escape(atob(btn.dataset.cand||'W10=')))); }
+  catch(e){ return []; }
+}
+
+async function elimRecomBtn(btn){
+  const vars=_parseCand(btn);
+  await elimRecom(vars);
+}
+
+async function elimRecom(vars){
+  if(!vars||!vars.length){toast('Sin variables para eliminar','warn');return;}
+  if(!confirm('¿Eliminar '+vars.length+' variables: '+vars.join(', ')+'?'))return;
+  try{
+    const d=await api('/api/eliminar_variables',{variables:vars},'Eliminando...');
+    S.cols=S.cols.filter(c=>d.columnas.includes(c.nombre));
+    Q('top-info').textContent=d.filas+'×'+d.columnas_count+' (editado)';
+    toast('Eliminadas: '+d.eliminadas.join(', ')+'. Quedan '+d.columnas_count+' cols.','ok');
+    // Actualizar lista de columnas en panel Dataset
+    const cl=Q('col-list');
+    if(cl) cl.querySelectorAll('.col-item').forEach(el=>{
+      const nombre=el.querySelector('span:nth-child(2)')?.textContent;
+      if(nombre&&vars.includes(nombre)) el.remove();
+    });
+    // Mostrar botón de descarga
+    let dwrap=document.getElementById('download-bar');
+    if(!dwrap){
+      dwrap=document.createElement('div');
+      dwrap.id='download-bar';
+      dwrap.style.cssText='position:fixed;top:54px;right:14px;z-index:998;background:#2e7d32;color:#fff;padding:8px 14px;border-radius:4px;font-size:12px;font-weight:bold;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.3)';
+      dwrap.innerHTML='⬇ Descargar dataset modificado';
+      dwrap.onclick=()=>window.location.href='/api/descargar_dataset';
+      document.body.appendChild(dwrap);
+    }
+    // Re-ejecutar el último selector para actualizar la tabla
+    if(_lastSel){
+      toast('Recalculando selector...','ok');
+      await _rerunLastSel();
+    }
+  }catch(e){toast(e.message,'err');}
+}
+
+async function _rerunLastSel(){
+  if(!_lastSel)return;
+  const {fn,met,tit,rid,params}=_lastSel;
+  try{
+    let d;
+    if(fn==='runGower'){
+      d=await api('/api/selector/gower',params,'Recalculando Gower...');
+      let h=renderRanking(d,'Gower Distancia & Similitud');
+      if(d.grafica)h+=`<div class="card"><h3>Mapa de Similitud</h3><img src="${d.grafica}" style="max-width:100%;border-radius:3px"></div>`;
+      if(d.vecinos){
+        h+=`<div class="card"><h3>Vecinos más cercanos ★</h3><table><thead><tr><th>Instancia</th><th>Vecino ★</th><th>Similitud</th></tr></thead><tbody>`;
+        d.vecinos.forEach(v=>{h+=`<tr><td>I${v.instancia}</td><td style="color:#2e7d32;font-weight:bold">★ I${v.vecino}</td><td>${v.similitud.toFixed(6)}</td></tr>`;});
+        h+=`</tbody></table></div>`;
+      }
+      h+=renderElim(d.eliminacion,'gower');
+      Q(rid).innerHTML=h;
+    } else if(fn==='runTodos'){
+      d=await api('/api/selector/todos',{},'Recalculando 6 selectores...');
+      let h=renderRanking(d,'SCORE_FINAL — 6 métodos');
+      h+=renderElim(d.eliminacion,'todos');
+      if(d.grafica)h+=`<div class="card"><img src="${d.grafica}" style="max-width:100%;border-radius:3px"></div>`;
+      Q(rid).innerHTML=h;
+    } else {
+      const body=params||{};
+      d=await api('/api/selector/'+met,body,`Recalculando ${tit}...`);
+      Q(rid).innerHTML=renderRanking(d,tit)+renderElim(d.eliminacion,met);
+    }
+    // Navegar al panel del selector para mostrar resultado actualizado
+    go(rid==='rp'?'pearson':rid==='rc'?'chi2':rid==='rr'?'rf':rid==='rg'?'gower':rid==='rrel'?'relief':rid==='rgr'?'gainratio':'todos');
+    toast('Tabla actualizada ✓','ok');
+  }catch(e){toast('Error al recalcular: '+e.message,'err');}
+}
+
+function abrirManual(btn){
+  const wrap=btn.parentElement.nextElementSibling;
+  const vis=wrap.style.display==='none';
+  wrap.style.display=vis?'':'none';
+  if(vis){
+    const sugeridas=_parseCand(btn);
+    wrap.querySelectorAll('.chk-item').forEach(el=>{
+      if(sugeridas.includes(el.dataset.v)) el.classList.add('on');
+      else el.classList.remove('on');
+    });
+  }
+}
+
+async function elimManual(btn){
+  const vars=[...btn.parentElement.querySelectorAll('.elim-chks .chk-item.on')].map(e=>e.dataset.v);
+  if(!vars.length){toast('Selecciona al menos una','warn');return;}
+  await elimRecom(vars);
+}
+
+// ══════════════════════════════════════════════
+// GOWER
+// ══════════════════════════════════════════════
+function showGPesos(){
+  const w=Q('gp');
+  if(w.style.display!=='none'){w.style.display='none';return;}
+  const feat=S.cols.filter(c=>c.nombre!==S.target);
+  if(!feat.length){toast('Carga dataset primero','warn');return;}
+  let items='';
+  feat.forEach(c=>{
+    const val=_pesosG[c.nombre]||1;
+    items+='<div><label>'+c.nombre+'</label>'
+      +'<input type="number" id="gw-'+c.nombre+'" value="'+val+'" min="0" step="0.1"'
+      +' onchange="_pesosG[\'' +c.nombre+ '\']= parseFloat(this.value)||1"></div>';
+  });
+  w.innerHTML='<div style="font-size:11px;font-weight:bold;margin-bottom:4px">Pesos por variable (default=1.0)</div>'
+    +'<div class="pgrid">'+items+'</div>';
+  w.style.display='';
+}
+
+async function runGower(){
+  if(!S.target){toast('Selecciona el target primero','warn');return;}
+  const maxI=+Q('gmx').value||20;
+  S.cols.filter(c=>c.nombre!==S.target).forEach(c=>{const el=Q('gw-'+c.nombre);if(el)_pesosG[c.nombre]=parseFloat(el.value)||1;});
+  _lastSel={fn:'runGower',met:'gower',tit:'Gower',rid:'rg',params:{max_instancias:maxI,weights:{..._pesosG}}};
+  try{
+    const d=await api('/api/selector/gower',{max_instancias:maxI,weights:_pesosG},'Calculando Gower...');
+    let h=renderRanking(d,'Gower Distancia & Similitud');
+    if(d.grafica)h+=`<div class="card"><h3>Mapa de Similitud</h3><img src="${d.grafica}" style="max-width:100%;border-radius:3px"></div>`;
+    if(d.vecinos){
+      h+=`<div class="card"><h3>Vecinos más cercanos ★</h3><table><thead><tr><th>Instancia</th><th>Vecino ★</th><th>Similitud</th></tr></thead><tbody>`;
+      d.vecinos.forEach(v=>{h+=`<tr><td>I${v.instancia}</td><td style="color:#2e7d32;font-weight:bold">★ I${v.vecino}</td><td>${v.similitud.toFixed(6)}</td></tr>`;});
+      h+=`</tbody></table></div>`;
+    }
+    h+=renderElim(d.eliminacion,'gower');
+    Q('rg').innerHTML=h;toast('Gower completado','ok');
+  }catch(e){toast(e.message,'err');}
+}
+
+// ══════════════════════════════════════════════
+// COMPARAR TODOS
+// ══════════════════════════════════════════════
+async function runTodos(){
+  if(!S.target){toast('Selecciona el target primero','warn');return;}
+  _lastSel={fn:'runTodos',met:'todos',tit:'Comparar Todo',rid:'rt',params:null};
+  try{
+    const d=await api('/api/selector/todos',{},'Ejecutando 6 selectores...');
+    let h=renderRanking(d,'SCORE_FINAL — 6 métodos');
+    h+=renderElim(d.eliminacion,'todos');
+    if(d.grafica)h+=`<div class="card"><img src="${d.grafica}" style="max-width:100%;border-radius:3px"></div>`;
+    Q('rt').innerHTML=h;toast('Comparación completa','ok');
+  }catch(e){toast(e.message,'err');}
+}
+
+// ══════════════════════════════════════════════
+// CLASIFICADORES
+// ══════════════════════════════════════════════
+function togParams(cid,pid){
+  _pVis[cid]=!_pVis[cid];
+  const mods=chkd('chk-'+cid);
+  const w=Q(pid);
+  if(!_pVis[cid]){w.innerHTML='';return;}
+  let h='';
+  mods.forEach(m=>{
+    const ps=PD[m]||[];if(!ps.length)return;
+    h+=`<div style="grid-column:1/-1;font-size:10px;font-weight:bold;color:#555;margin-top:4px">${m.toUpperCase()}</div>`;
+    ps.forEach(p=>{h+=`<div><label>${p.lbl}</label><input id="p-${cid}-${m}-${p.k}" value="${p.v}" placeholder="${p.ph}"></div>`;});
+  });
+  w.innerHTML=h;
+}
+
+function getParams(cid){
+  const mods=chkd('chk-'+cid),params={};
+  mods.forEach(m=>{
+    const ps=PD[m]||[],mp={};
+    ps.forEach(p=>{const el=Q(`p-${cid}-${m}-${p.k}`);if(el&&el.value){const v=parseFloat(el.value);mp[p.k]=isNaN(v)?el.value:v;}});
+    if(Object.keys(mp).length)params[m]=mp;
+  });
+  return params;
+}
+
+async function runClf(tipo,cid,pid,rid){
+  if(!S.target){toast('Selecciona el target primero','warn');return;}
+  const mods=chkd('chk-'+cid);
+  if(!mods.length){toast('Selecciona al menos uno','warn');return;}
+  const test_size=parseFloat(Q(cid==='sup'?'st':'nt').value)/100;
+  try{
+    const d=await api('/api/clasificar',{tipo,modelos:mods,test_size,params:getParams(cid)},'Entrenando...');
+    const mejor=d.resultados.reduce((a,b)=>a.cv_mean>b.cv_mean?a:b);
+    let h=`<div class="card"><h3>Resultados — ${tipo}</h3>`;
+
+    h+=`<table><thead><tr><th>Modelo</th><th>Accuracy</th><th>F1</th><th>CV mean</th><th>CV±std</th><th>Kappa≈</th><th>MAE≈</th></tr></thead><tbody>`;
+    d.resultados.forEach(r=>{
+      const best=r.modelo===mejor.modelo;
+      const ac=r.accuracy>0.8?'hi':r.accuracy>0.6?'mid':'lo';
+      const cv=r.cv_mean>0.8?'hi':r.cv_mean>0.6?'mid':'lo';
+      h+=`<tr style="${best?'background:#f1f8e9':''}">
+        <td><b style="${best?'color:#2e7d32':''}">${best?'★ ':''}</b>${r.modelo}<br><span style="font-size:10px;color:#888">${r.display||''}</span></td>
+        <td class="${ac}">${r.accuracy.toFixed(6)}</td>
+        <td>${r.f1.toFixed(6)}</td>
+        <td class="${cv}">${r.cv_mean.toFixed(6)}</td>
+        <td>±${r.cv_std.toFixed(6)}</td>
+        <td>${r.kappa!==undefined?r.kappa.toFixed(4):'—'}</td>
+        <td>${r.mae!==undefined?r.mae.toFixed(4):'—'}</td>
+      </tr>`;
+    });
+    h+=`</tbody></table></div>`;
+
+    if(d.grafica)h+=`<div class="card"><h3>Comparación</h3><img src="${d.grafica}" style="max-width:100%;border-radius:3px"></div>`;
+
+    d.resultados.forEach((r,i)=>{
+      h+=`<div class="card"><h3>${r.modelo} — Accuracy By Class</h3>`;
+      if(r.abc&&r.abc.length){
+        h+=`<table><thead><tr><th>Clase</th><th>TP Rate</th><th>FP Rate</th><th>Precision</th><th>Recall</th><th>F-Measure</th><th>Soporte</th></tr></thead><tbody>`;
+        r.abc.forEach(a=>{
+          const cls=a.f_measure>0.8?'hi':a.f_measure>0.5?'mid':'lo';
+          h+=`<tr><td><b>${a.clase}</b></td><td class="${cls}">${a.tp_rate}</td><td>${a.fp_rate}</td><td>${a.precision}</td><td>${a.recall}</td><td class="${cls}">${a.f_measure}</td><td>${a.support}</td></tr>`;
+        });
+        h+=`</tbody></table>`;
+      }
+      if(d.graficas_cm&&d.graficas_cm[i]){
+        h+=`<div style="margin-top:10px"><img src="${d.graficas_cm[i]}" style="max-width:100%;border-radius:3px"></div>`;
+      }
+      h+=`</div>`;
+    });
+
+    Q(rid).innerHTML=h;
+    S.modelosDisp=[...new Set([...S.modelosDisp,...mods])];
+    loadPredMods();
+    toast(`${mods.length} clasificador(es) entrenados`,'ok');
+  }catch(e){toast(e.message,'err');}
+}
+
+// ══════════════════════════════════════════════
+// RESULTS
+// ══════════════════════════════════════════════
+async function loadResults(){
+  try{
+    load(true,'Cargando...');
+    const r=await fetch('/api/resultados');
+    const d=await r.json();load(false);
+    if(d.error)throw new Error(d.error);
+    const res=d.resultados;
+    const met=res.metodos_ejecutados||[];
+    Q('rm').innerHTML=met.length
+      ?'<div style="font-size:11px;color:#555;margin-bottom:6px">Métodos ejecutados en sesión:</div>'+met.map(m=>`<span class="badge bblue" style="margin:2px">${m}</span>`).join('')
+      :'<span style="font-size:11px;color:#999">Sin métodos ejecutados aún.</span>';
+    if(res.ultimo_resumen&&res.ultimo_resumen.length){
+      Q('rsc').style.display='';
+      const cols=Object.keys(res.ultimo_resumen[0]);
+      let h='<table><thead><tr>'+cols.map(c=>'<th>'+c+'</th>').join('')+'</tr></thead><tbody>';
+      res.ultimo_resumen.slice(0,20).forEach(row=>{
+        h+=`<tr>${cols.map(c=>{const v=row[c];if(typeof v==='number'){const cls=c==='SCORE_FINAL'?(v>0.7?'hi':v>0.3?'mid':'lo'):'';return`<td class="${cls}">${v.toFixed(6)}</td>`;}return`<td>${v}</td>`;}).join('')}</tr>`;
+      });
+      h+=`</tbody></table>`;Q('rst').innerHTML=h;
+    }
+    if(res.clasificadores&&res.clasificadores.length){
+      Q('rcc').style.display='';
+      let h=`<table><thead><tr><th>Modelo</th><th>Accuracy</th><th>F1</th><th>CV mean</th><th>CV±std</th></tr></thead><tbody>`;
+      res.clasificadores.forEach(r=>{h+=`<tr><td>${r.modelo}</td><td class="${r.accuracy>0.8?'hi':r.accuracy>0.6?'mid':'lo'}">${r.accuracy.toFixed(6)}</td><td>${r.f1.toFixed(6)}</td><td>${r.cv_mean.toFixed(6)}</td><td>±${r.cv_std.toFixed(6)}</td></tr>`;});
+      h+=`</tbody></table>`;Q('rct').innerHTML=h;
+    }
+  }catch(e){toast(e.message,'err');}
+}
+
+// ══════════════════════════════════════════════
+// PREDICCIÓN
+// ══════════════════════════════════════════════
+function switchModo(){
+  const m=Q('pmodo').value;
+  Q('m-manual').style.display=m==='manual'?'':'none';
+  Q('m-muestra').style.display=m==='muestra'?'':'none';
+  Q('m-csv').style.display=m==='csv'?'':'none';
+}
+
+function loadPredMods(){
+  fetch('/api/resultados').then(r=>r.json()).then(d=>{
+    const mods=d.resultados?.modelos_disponibles||[];
+    if(mods.length){
+      S.modelosDisp=mods;
+      Q('pmod').innerHTML=mods.map(m=>`<option value="${m}">${m}</option>`).join('');
+    }
+  }).catch(()=>{});
+}
+
+function buildPredCampos(){
+  if(!S.cols.length||!S.target)return;
+  const feat=S.cols.filter(c=>c.nombre!==S.target);
+  Q('pcampos').innerHTML=feat.map(c=>'<div><label>'+c.nombre+'</label>'
+    +'<input type="text" id="pv-'+c.nombre+'" value="0" placeholder="'+c.tipo+'"></div>').join('');
+}
+
+async function predecir(){
+  if(!S.target){toast('Selecciona el target primero','warn');return;}
+  const modo=Q('pmodo').value,modelo=Q('pmod').value;
+  try{
+    let d;
+    if(modo==='csv'){
+      const fi=Q('pfi');if(!fi.files.length){toast('Selecciona CSV','warn');return;}
+      const sep=Q('psep').value==='tab'?'\t':Q('psep').value;
+      const fd=new FormData();fd.append('archivo',fi.files[0]);fd.append('modelo',modelo);fd.append('sep',sep);
+      d=await api('/api/predecir_csv',fd,'Prediciendo CSV...');
+    } else {
+      const body={modo,modelo,test_size:0.2};
+      if(modo==='manual'){
+        const feat=S.cols.filter(c=>c.nombre!==S.target),inst={};
+        feat.forEach(c=>{const el=Q('pv-'+c.nombre);if(el)inst[c.nombre]=el.value;});
+        body.instancia=inst;
+      } else {
+        body.n_muestras=parseInt(Q('pn').value)||10;
+      }
+      d=await api('/api/predecir',body,'Prediciendo...');
+    }
+
+    Q('pred-out').style.display='';
+    Q('pmod-lbl').textContent='— '+d.modelo+(d.excluidas_training?' (excluye '+d.excluidas_training+' instancias de training)':'');
+
+    if(d.metricas){
+      Q('pm-card').style.display='';
+      const m=d.metricas;
+      const accCls=m.accuracy>0.8?'hi':m.accuracy>0.6?'mid':'lo';
+      Q('pm-stats').innerHTML=`
+        <div class="stat-box"><div class="stat-num ${accCls}">${(m.accuracy*100).toFixed(2)}%</div><div class="stat-lbl">Accuracy</div></div>
+        <div class="stat-box"><div class="stat-num">${(m.f1*100).toFixed(2)}%</div><div class="stat-lbl">F1 weighted</div></div>
+        <div class="stat-box"><div class="stat-num">${m.kappa!==undefined?(m.kappa).toFixed(4):'—'}</div><div class="stat-lbl">Kappa</div></div>
+        <div class="stat-box"><div class="stat-num">${m.n_correctas||0}</div><div class="stat-lbl">Correctas</div></div>
+        <div class="stat-box"><div class="stat-num">${m.n_total||0}</div><div class="stat-lbl">Total</div></div>`;
+      if(m.abc&&m.abc.length){
+        let th=`<table><thead><tr><th>Clase</th><th>TP Rate</th><th>FP Rate</th><th>Precision</th><th>Recall</th><th>F-Measure</th><th>Soporte</th></tr></thead><tbody>`;
+        m.abc.forEach(a=>{
+          const cls=a.f_measure>0.8?'hi':a.f_measure>0.5?'mid':'lo';
+          th+=`<tr><td><b>${a.clase}</b></td><td class="${cls}">${a.tp_rate}</td><td>${a.fp_rate}</td><td>${a.precision}</td><td>${a.recall}</td><td class="${cls}">${a.f_measure}</td><td>${a.support}</td></tr>`;
+        });
+        th+=`</tbody></table>`;
+        Q('pm-abc').innerHTML=th;
+      }
+    } else {Q('pm-card').style.display='none';}
+
+    if(d.graficas_cm&&d.graficas_cm.length){
+      Q('pcm-card').style.display='';
+      Q('pcm-img').innerHTML=`<img src="${d.graficas_cm[0]}" style="max-width:100%;border-radius:3px">`;
+    } else {Q('pcm-card').style.display='none';}
+
+    if(modo==='manual'&&d.predicciones.length===1){
+      Q('psingle').style.display='';
+      Q('pval').textContent=d.predicciones[0].prediccion;
+      const row=d.predicciones[0];
+      const pkeys=Object.keys(row).filter(k=>k.startsWith('P('));
+      let ph='';
+      if(pkeys.length){
+        ph='<div style="margin-top:8px">';
+        pkeys.forEach(k=>{const pct=(row[k]*100).toFixed(1);ph+=`<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;font-size:11px"><span style="min-width:55px;font-family:monospace">${k.replace(/P\(|\)/g,'')}</span><div class="bar"><div class="bar-fill" style="width:${pct}%"></div></div><span style="min-width:42px">${pct}%</span></div>`;});
+        ph+='</div>';
+      }
+      Q('pprobas').innerHTML=ph;
+    } else {Q('psingle').style.display='none';}
+
+    if(d.predicciones.length){
+      const cols=Object.keys(d.predicciones[0]);
+      let h='<table><thead><tr>'+cols.map(c=>'<th>'+c+'</th>').join('')+'</tr></thead><tbody>';
+      d.predicciones.forEach(row=>{
+        const ok=row.correcto;
+        h+=`<tr style="${ok==='✓'?'background:#f1f8e9':ok==='✗'?'background:#ffebee':''}">${cols.map(c=>{const v=row[c];if(c==='correcto')return`<td style="font-weight:bold;color:${v==='✓'?'#2e7d32':'#c62828'}">${v}</td>`;if(c==='prediccion')return`<td style="font-weight:bold;color:#1a237e">${v}</td>`;return`<td>${typeof v==='number'?v.toFixed(4):v}</td>`;}).join('')}</tr>`;
+      });
+      h+=`</tbody></table>`;Q('ptbl').innerHTML=h;
+    }
+
+    toast('Predicción completada','ok');
+  }catch(e){toast(e.message,'err');}
+}
+</script>
+</body>
+</html>
