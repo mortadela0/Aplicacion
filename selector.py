@@ -35,6 +35,19 @@ import metodos.seleccion as sel
 from metodos.supervisado   import CATALOGO as CAT_SUP,   ALIAS as ALIAS_SUP,   get_clasificador as get_sup
 from metodos.no_supervisado import CATALOGO as CAT_NOSUP, ALIAS as ALIAS_NOSUP, get_clasificador as get_nosup
 
+# ── Imports: evaluador y descriptor de clusters (nuevos) ─────────────────
+from metodos.no_supervisado.evaluador_clusters import (
+    evaluar_clustering,
+    calcular_indices,
+    imprimir_comparacion_clusters,
+    imprimir_evaluacion,
+)
+from metodos.no_supervisado.descriptor_clusters import (
+    analizar_y_describir,
+    imprimir_clasificacion_nueva,
+)
+from sklearn.preprocessing import StandardScaler
+
 try:
     from metodos.seleccion.weka_attsel import weka_disponible, detener_jvm
     import metodos.seleccion.weka_attsel as m_weka
@@ -66,6 +79,103 @@ def cargar_csv():
         return df, os.path.basename(ruta)
     except Exception as e:
         print(f"  {Fore.RED}[ERROR] {e}"); return None, None
+
+
+# ── Evaluacion de calidad + descripcion de clusters (no supervisado) ──────
+def _post_evaluacion_nosup(resultados, df, target_col):
+    """
+    Se llama despues de entrenar metodos no supervisados.
+    1. Calcula indices Dunn / Silhouette / Davies-Bouldin por propuesta.
+    2. Muestra tabla comparativa y determina la mejor.
+    3. Ofrece describir el perfil de clusters (como en clase).
+    4. Ofrece clasificar una nueva instancia por reglas.
+    """
+    import numpy as np
+    from utils.preprocesamiento import preparar_datos
+    from sklearn.preprocessing import LabelEncoder
+
+    # Solo metodos no supervisados (tienen _scaler)
+    clfs_nosup = {nom: r for nom, r in resultados.items()
+                  if hasattr(r.get("clf", None), "_scaler")}
+    if not clfs_nosup:
+        return
+
+    # Escalar datos para los indices
+    X_full, _ = preparar_datos(df, target_col)
+    X_arr     = X_full.values.astype(float)
+    scaler    = StandardScaler()
+    X_scaled  = scaler.fit_transform(X_arr)
+
+    # Obtener etiquetas de cada propuesta
+    propuestas_labels = {}
+    for nom, r in clfs_nosup.items():
+        clf = r["clf"]
+        try:
+            raw    = clf.predict(X_arr)
+            le     = LabelEncoder()
+            propuestas_labels[nom] = le.fit_transform(raw)
+        except Exception as exc:
+            print(f"  {Fore.YELLOW}[WARN] No se pudieron obtener labels de {nom}: {exc}")
+
+    if not propuestas_labels:
+        return
+
+    # ── 1. Tabla de indices ───────────────────────────────────────────────
+    indices_dict = {n: calcular_indices(X_scaled, labs)
+                    for n, labs in propuestas_labels.items()}
+    mejor = imprimir_comparacion_clusters(indices_dict)
+    if mejor:
+        print(f"  {Fore.GREEN}  Mejor agrupamiento: {mejor}")
+
+    # ── 2. Descripcion de perfiles ────────────────────────────────────────
+    describir = input(
+        f"\n  {Fore.WHITE}  ¿Describir perfil de cada cluster? (s/N): {Fore.GREEN}"
+    ).strip().lower()
+
+    if describir != "s":
+        return
+
+    # Elegir cual propuesta describir si hay mas de una
+    if len(propuestas_labels) > 1:
+        print(f"\n  {Fore.WHITE}  Elige la propuesta a describir:")
+        nombres = list(propuestas_labels.keys())
+        for i, nom in enumerate(nombres, 1):
+            marca = "  ◄ mejor" if nom == mejor else ""
+            print(f"    {Fore.CYAN}[{i}] {nom}{Fore.YELLOW}{marca}")
+        sel_str = input(f"  {Fore.GREEN}  Numero (Enter = mejor): ").strip()
+        if sel_str.isdigit() and 1 <= int(sel_str) <= len(nombres):
+            nom_desc = nombres[int(sel_str) - 1]
+        else:
+            nom_desc = mejor or nombres[0]
+    else:
+        nom_desc = list(propuestas_labels.keys())[0]
+
+    labels_desc = propuestas_labels[nom_desc]
+    print(f"\n  {Fore.CYAN}Describiendo: {nom_desc}")
+
+    perfiles, reglas = analizar_y_describir(
+        df, labels_desc, target_col=target_col
+    )
+
+    # ── 3. Clasificar nueva instancia ─────────────────────────────────────
+    clasificar = input(
+        f"  {Fore.WHITE}  ¿Clasificar una nueva instancia por reglas? (s/N): {Fore.GREEN}"
+    ).strip().lower()
+
+    if clasificar != "s":
+        return
+
+    print(f"  {Fore.WHITE}  Ingresa los valores "
+          f"(Enter en blanco = omitir columna):")
+    columnas = [c for c in df.columns if c != target_col]
+    nueva    = {}
+    for col in columnas:
+        val = input(f"    {Fore.CYAN}{col}: {Fore.GREEN}").strip()
+        if val:
+            nueva[col] = val
+
+    if nueva:
+        imprimir_clasificacion_nueva(nueva, reglas, perfiles)
 
 
 # ── Sub-menú genérico de clasificadores ──────────────────────────────────
@@ -125,6 +235,10 @@ def menu_clasificadores(df, target_col, modelos, catalogo, alias, get_fn, titulo
             resultados[nom] = res
 
         imprimir_comparacion(resultados, catalogo)
+
+        # ── Post-evaluacion no supervisado: indices + perfiles ────────────
+        if titulo.startswith("CLASIFICADORES NO SUPERVISADOS"):
+            _post_evaluacion_nosup(resultados, df, target_col)
 
         # Guardar modelos
         guardar = input(f"  {Fore.WHITE}  ¿Guardar modelos entrenados? (s/N): {Fore.GREEN}").strip().lower()
@@ -235,8 +349,6 @@ def main():
             if df is None or target_col is None:
                 print(f"  {Fore.RED}[ERROR] Carga CSV primero.")
             else:
-                # Weka es opcional: solo se incluye si el usuario ya lo ejecutó (opción 6)
-                # ReliefF y GainRatio son nativos — siempre disponibles sin Java
                 if resultados_weka is None and weka_disponible():
                     print(f"  {Fore.CYAN}  Weka disponible. Ejecuta la opción [6] primero para"
                           f" incluir Weka_Avg en el SCORE_FINAL.")
@@ -246,7 +358,6 @@ def main():
                 try:
                     ultimo_resumen = sel.comparar_todos(
                         df, target_col, nombre_archivo, resultados_weka, m_weka)
-                    # Ofrecer eliminar variables por SCORE_FINAL + acuerdo entre métodos
                     if ultimo_resumen is not None:
                         df = menu_eliminar_por_score_final(df, target_col, ultimo_resumen)
                 except Exception as e:
@@ -281,7 +392,7 @@ def main():
                     modelos_nosup = menu_clasificadores(
                         df, target_col, modelos_nosup,
                         CAT_NOSUP, ALIAS_NOSUP, get_nosup,
-                        "CLASIFICADORES NO SUPERVISADOS — Hierarchical | KMeans | DBSCAN | GMM | KMedoids")
+                        "CLASIFICADORES NO SUPERVISADOS — Hierarchical | KMeans | DBSCAN | GMM | KMedoids | EM")
                 except Exception as e:
                     print(f"\n  {Fore.RED}[ERROR] {e}")
                     import traceback; traceback.print_exc()

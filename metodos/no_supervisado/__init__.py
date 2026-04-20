@@ -1,4 +1,4 @@
-from . import hierarchical, kmeans, dbscan, gmm, kmedoids
+from . import hierarchical, kmeans, dbscan, gmm, kmedoids, em
 
 CATALOGO = {
     "hierarchical": hierarchical,
@@ -6,6 +6,7 @@ CATALOGO = {
     "dbscan":       dbscan,
     "gmm":          gmm,
     "kmedoids":     kmedoids,
+    "em":           em,          # ← nuevo: Expectation-Maximization
 }
 
 ALIAS = {
@@ -14,6 +15,7 @@ ALIAS = {
     "3": "dbscan",
     "4": "gmm",
     "5": "kmedoids",
+    "6": "em",                   # ← nuevo alias
 }
 
 def get_clasificador(nombre, params=None, n_clases=2):
